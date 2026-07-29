@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
+import Link from "next/link";
 
 interface Product {
   _id: string;
@@ -116,20 +117,23 @@ function HomeContent() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map((prod) => (
                 <div key={prod._id} className="bg-white border rounded-xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col justify-between">
-                  <div>
+                  {/* Clickable Area Linked to Details Page */}
+                  <Link href={`/products/${prod._id}`} className="group block">
                     <div className="relative h-48 w-full bg-gray-100">
                       <Image
                         src={prod.images[0] || "https://via.placeholder.com/300"}
                         alt={prod.title}
                         fill
-                        className="object-cover"
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
                     <div className="p-4">
                       <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-1 rounded">
                         {prod.category}
                       </span>
-                      <h4 className="font-bold text-gray-800 text-lg mt-2 line-clamp-1">{prod.title}</h4>
+                      <h4 className="font-bold text-gray-800 text-lg mt-2 line-clamp-1 group-hover:text-blue-600 transition-colors">
+                        {prod.title}
+                      </h4>
                       <p className="text-gray-500 text-xs mt-1 line-clamp-2">{prod.description}</p>
                       
                       {/* Payment Badges */}
@@ -142,8 +146,9 @@ function HomeContent() {
                         )}
                       </div>
                     </div>
-                  </div>
+                  </Link>
 
+                  {/* Bottom Action Bar */}
                   <div className="p-4 pt-0 border-t mt-4 flex items-center justify-between">
                     <span className="text-xl font-extrabold text-gray-900">
                       Rs. {prod.price.toLocaleString()}
