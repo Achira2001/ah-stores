@@ -3,25 +3,62 @@
 import { useCart } from "@/context/CartContext";
 import Link from "next/link";
 import Image from "next/image";
-import { Trash2, ShoppingBag, ArrowRight, CheckCircle } from "lucide-react";
+import { Trash2, ShoppingBag, ArrowRight, CheckCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
   const [paymentMethod, setPaymentMethod] = useState<"COD" | "AfterPay">("COD");
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [customer, setCustomer] = useState({ name: "", phone: "", address: "" });
 
-  const handleCheckout = (e: React.FormEvent) => {
+  const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customer.name || !customer.phone || !customer.address) {
       alert("Please fill in all delivery details!");
       return;
     }
 
-    // Process Order Success Simulation
-    setOrderSuccess(true);
-    clearCart();
+    setLoading(true);
+
+    try {
+      // Order payload
+      const orderData = {
+        customerName: customer.name,
+        phone: customer.phone,
+        address: customer.address,
+        paymentMethod,
+        totalAmount: totalPrice,
+        items: cart.map((item) => ({
+          productId: item._id,
+          title: item.title,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+        })),
+      };
+
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setOrderSuccess(true);
+        clearCart();
+      } else {
+        alert(data.error || "Failed to place order. Please try again.");
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      alert("Something went wrong. Please check your connection.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (orderSuccess) {
@@ -31,7 +68,7 @@ export default function CartPage() {
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
           <h2 className="text-2xl font-bold text-gray-900">Order Placed Successfully!</h2>
           <p className="text-gray-500 text-sm">
-            Thank you for ordering with A H Essentials. We will deliver your package shortly.
+            Thank you for ordering with A H Essentials. Your order has been saved and we will deliver your package shortly.
           </p>
           <Link
             href="/"
@@ -201,10 +238,20 @@ export default function CartPage() {
 
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-3 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
             >
-              <span>Place Order ({paymentMethod})</span>
-              <ArrowRight className="w-4 h-4" />
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Placing Order...</span>
+                </>
+              ) : (
+                <>
+                  <span>Place Order ({paymentMethod})</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </form>
         </div>
