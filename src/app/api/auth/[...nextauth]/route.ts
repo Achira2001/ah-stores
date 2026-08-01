@@ -1,23 +1,11 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
+import NextAuth, { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { connectToDatabase } from "@/lib/db";
-import mongoose from "mongoose";
+import User from "@/models/User";
+import bcrypt from "bcryptjs";
 
-// User Schema Dynamic Import or Simple Validation
-const UserSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    image: { type: String },
-    role: { type: String, default: "user" },
-  },
-  { timestamps: true }
-);
-
-const User = mongoose.models.User || mongoose.model("User", UserSchema);
-
-export const authOptions: NextAuthOptions = {
+export const authOptions: AuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
@@ -29,49 +17,79 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      // authorize function section in NextAuth route.ts:
-async authorize(credentials) {
-  if (!credentials?.email || !credentials?.password) return null;
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Please enter email and password");
+        }
 
-  await connectToDatabase();
-  const user = await User.findOne({ email: credentials.email });
+        await connectToDatabase();
 
-  // Account ekak nathnam error ekak throw karagannawam
-  if (!user) {
-    throw new Error("No account found with this email. Please Sign Up first!");
-  }
+        const user = await User.findOne({ email: credentials.email });
+        if (!user) {
+          throw new Error("No account found with this email");
+        }
 
-  if (user.password !== credentials.password) {
-    throw new Error("Incorrect Password!");
-  }
+        const isPasswordMatch = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
 
-  return { id: user._id.toString(), name: user.name, email: user.email };
-},
+        if (!isPasswordMatch) {
+          throw new Error("Invalid credentials");
+        }
+
+        if (!user.isEmailVerified) {
+          throw new Error("Please verify your email before logging in.");
+        }
+
+        return {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        };
+      },
     }),
   ],
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
-        await connectToDatabase();
-        const existingUser = await User.findOne({ email: user.email });
-        if (!existingUser) {
-          await User.create({
-            name: user.name,
-            email: user.email,
-            image: user.image,
-          });
+        try {
+          await connectToDatabase();
+          const existingUser = await User.findOne({ email: user.email });
+
+          if (!existingUser) {
+            await User.create({
+              name: user.name,
+              email: user.email,
+              password: "", // Not required for OAuth
+              role: "user", // Google users are always standard customers
+              isEmailVerified: true, // Google emails are pre-verified
+            });
+          }
+          return true;
+        } catch (error) {
+          console.error("Error creating Google user:", error);
+          return false;
         }
       }
       return true;
     },
-    async session({ session }) {
-      if (session.user) {
+    async jwt({ token, user }) {
+      if (user) {
         await connectToDatabase();
-        const dbUser = await User.findOne({ email: session.user.email });
+        const dbUser = await User.findOne({ email: token.email });
         if (dbUser) {
-          (session.user as any).id = dbUser._id.toString();
-          (session.user as any).role = dbUser.role || "user";
+          token.role = dbUser.role;
+          token.id = dbUser._id.toString();
         }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        (session.user as any).role = token.role;
+        (session.user as any).id = token.id;
       }
       return session;
     },
@@ -82,9 +100,8 @@ async authorize(credentials) {
   session: {
     strategy: "jwt",
   },
-  secret: process.env.NEXTAUTH_SECRET || "ah_essentials_super_secret_key_123",
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);
-
 export { handler as GET, handler as POST };

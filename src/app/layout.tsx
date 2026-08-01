@@ -19,11 +19,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.className} antialiased bg-gray-50 text-gray-900`}>
         <AuthProvider>
           <CartProvider>
-            <Navbar />
-            <main className="min-h-screen bg-gray-50">{children}</main>
+            <div className="flex flex-col min-h-screen">
+              <Navbar />
+              <main className="flex-1">{children}</main>
+            </div>
           </CartProvider>
         </AuthProvider>
       </body>

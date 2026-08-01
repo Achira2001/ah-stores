@@ -1,4 +1,8 @@
 import mongoose from "mongoose";
+import dns from "dns";
+
+// FORCE Node.js to use Google's public DNS servers for SRV resolution
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -6,19 +10,10 @@ if (!MONGODB_URI) {
   throw new Error("Please define the MONGODB_URI environment variable inside .env.local");
 }
 
-interface MongooseCache {
-  conn: typeof mongoose | null;
-  promise: Promise<typeof mongoose> | null;
-}
+let cached = (global as any).mongoose;
 
-declare global {
-  var mongooseCache: MongooseCache | undefined;
-}
-
-let cached = global.mongooseCache || { conn: null, promise: null };
-
-if (!global.mongooseCache) {
-  global.mongooseCache = cached;
+if (!cached) {
+  cached = (global as any).mongoose = { conn: null, promise: null };
 }
 
 export async function connectToDatabase() {
@@ -29,7 +24,6 @@ export async function connectToDatabase() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 5000, // 5 seconds timeout limit
     };
 
     cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
