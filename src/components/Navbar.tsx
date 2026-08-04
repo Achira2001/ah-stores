@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingBag, PlusCircle, Package, Store, Edit, LogIn, LogOut, User as UserIcon } from "lucide-react";
+import { ShoppingBag, PlusCircle, Package, Store, Edit, LogIn, LogOut, User as UserIcon, ShoppingCart } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useSession, signOut } from "next-auth/react";
 
@@ -29,7 +29,15 @@ export default function Navbar() {
               Store
             </Link>
 
-            {/* Admin ලාට විතරක් පෙනෙන Links */}
+            {/* Logged in users: My Orders */}
+            {session && (
+              <Link href="/orders" className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
+                <ShoppingCart className="w-4 h-4 text-blue-600" />
+                My Orders
+              </Link>
+            )}
+
+            {/* Admin Links */}
             {isAdmin && (
               <>
                 <Link href="/admin/add-product" className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
@@ -42,7 +50,7 @@ export default function Navbar() {
                 </Link>
                 <Link href="/admin/orders" className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
                   <Package className="w-4 h-4 text-purple-600" />
-                  Orders
+                  Admin Orders
                 </Link>
               </>
             )}
@@ -52,7 +60,7 @@ export default function Navbar() {
           <div className="flex items-center gap-4">
             
             {/* Cart Icon */}
-            <Link href="/cart" className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors">
+            <Link href="/cart" className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors" title="Cart">
               <ShoppingBag className="w-6 h-6" />
               {totalItems > 0 && (
                 <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[11px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
@@ -64,15 +72,19 @@ export default function Navbar() {
             {/* Authentication Buttons */}
             {session ? (
               <div className="flex items-center gap-3 border-l pl-4">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-gray-800">
+                <Link href="/orders" className="flex items-center gap-1.5 hover:bg-gray-50 px-2 py-1 rounded-xl transition">
                   <UserIcon className="w-4 h-4 text-gray-500" />
-                  <span>{session.user?.name}</span>
-                  {isAdmin && (
-                    <span className="bg-blue-100 text-blue-800 text-[10px] px-1.5 py-0.5 rounded font-extrabold">
-                      ADMIN
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-gray-800 leading-tight">
+                      {session.user?.name || session.user?.email?.split("@")[0]}
                     </span>
-                  )}
-                </div>
+                    {isAdmin && (
+                      <span className="bg-blue-100 text-blue-800 text-[9px] px-1 py-0.2 rounded font-extrabold w-max">
+                        ADMIN
+                      </span>
+                    )}
+                  </div>
+                </Link>
                 <button
                   onClick={() => signOut()}
                   className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition"
