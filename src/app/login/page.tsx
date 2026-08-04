@@ -45,7 +45,10 @@ export default function LoginPage() {
   return (
     <div className="max-w-md mx-auto px-4 py-16">
       <div className="mb-6">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 font-medium">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 font-medium"
+        >
           <ArrowLeft className="w-4 h-4" /> Back to Store
         </Link>
       </div>
@@ -98,13 +101,17 @@ export default function LoginPage() {
 
         <div className="relative flex items-center justify-center">
           <div className="border-t w-full border-gray-200"></div>
-          <span className="bg-white px-3 text-xs font-semibold text-gray-400 absolute">OR</span>
+          <span className="bg-white px-3 text-xs font-semibold text-gray-400 absolute">
+            OR
+          </span>
         </div>
 
         {/* Regular Email/Password Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
+              Email Address
+            </label>
             <input
               type="email"
               required
@@ -116,7 +123,17 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Password</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-gray-700">
+                Password
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-xs text-blue-600 font-semibold hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <input
               type="password"
               required
@@ -149,7 +166,10 @@ export default function LoginPage() {
         <div className="text-center border-t pt-4">
           <p className="text-xs text-gray-500">
             Don't have an account?{" "}
-            <Link href="/register" className="text-blue-600 font-bold hover:underline">
+            <Link
+              href="/register"
+              className="text-blue-600 font-bold hover:underline"
+            >
               Sign up here
             </Link>
           </p>
