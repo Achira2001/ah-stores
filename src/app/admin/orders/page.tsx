@@ -1,54 +1,76 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Package, Clock, CheckCircle, Truck, XCircle, ArrowLeft, RefreshCw } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Package, Search, Filter, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 interface OrderItem {
-  productId: string;
-  title: string;
+  _id: string;
+  name: string;
   price: number;
   quantity: number;
 }
 
 interface Order {
   _id: string;
-  customerName: string;
-  phone: string;
-  address: string;
-  paymentMethod: "COD" | "AfterPay";
-  items: OrderItem[];
-  totalAmount: number;
-  status: "Pending" | "Processing" | "Delivered" | "Cancelled";
   createdAt: string;
+  totalAmount: number;
+  status: "Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled";
+  items: OrderItem[];
+  customerDetails?: {
+    fullName: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+  };
+  customerName?: string;
+  phone?: string;
+  address?: string;
 }
 
 export default function AdminOrdersPage() {
+  const { data: session, status: authStatus } = useSession();
+  const router = useRouter();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("All");
 
-  // Fetch Orders
+  useEffect(() => {
+    if (authStatus === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+
+    if (authStatus === "authenticated") {
+      const isAdmin = (session?.user as any)?.role === "admin";
+      if (!isAdmin) {
+        router.push("/");
+        return;
+      }
+      fetchOrders();
+    }
+  }, [authStatus, session, router]);
+
   const fetchOrders = async () => {
-    setLoading(true);
     try {
       const res = await fetch("/api/orders");
       const data = await res.json();
       if (data.success) {
         setOrders(data.data);
       }
-    } catch (error) {
-      console.error("Error fetching orders:", error);
+    } catch (err) {
+      console.error("Failed to fetch orders", err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  // Update Status Handler
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     setUpdatingId(orderId);
     try {
@@ -61,139 +83,159 @@ export default function AdminOrdersPage() {
       const data = await res.json();
       if (data.success) {
         setOrders((prev) =>
-          prev.map((ord) =>
-            ord._id === orderId ? { ...ord, status: newStatus as Order["status"] } : ord
-          )
+          prev.map((o) => (o._id === orderId ? { ...o, status: newStatus as any } : o))
         );
-      } else {
-        alert(data.error || "Failed to update status");
       }
-    } catch (error) {
-      console.error("Error updating status:", error);
+    } catch (err) {
+      console.error("Failed to update status", err);
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const getStatusBadge = (status: Order["status"]) => {
-    switch (status) {
-      case "Pending":
-        return "bg-amber-100 text-amber-800 border-amber-200";
-      case "Processing":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "Delivered":
-        return "bg-emerald-100 text-emerald-800 border-emerald-200";
-      case "Cancelled":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+  // Filter orders based on search input & status selection
+  const filteredOrders = orders.filter((order) => {
+    const name = order.customerDetails?.fullName || order.customerName || "";
+    const email = order.customerDetails?.email || "";
+    const matchesSearch =
+      name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order._id.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter === "All" || order.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  if (authStatus === "loading" || loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+        <p className="text-sm font-medium text-gray-500">Loading admin panel...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 font-medium mb-2">
-            <ArrowLeft className="w-4 h-4" /> Back to Store
-          </Link>
-          <h1 className="text-3xl font-extrabold text-gray-900">Admin Orders Dashboard</h1>
-        </div>
-
-        <button
-          onClick={fetchOrders}
-          className="flex items-center gap-2 px-4 py-2 border bg-white rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 shadow-sm transition"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
+    <div className="max-w-6xl mx-auto px-4 py-12">
+      <div className="mb-6">
+        <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 font-medium">
+          <ArrowLeft className="w-4 h-4" /> Back to Store
+        </Link>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Manage Orders</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Review and update status for customer purchases
+          </p>
         </div>
-      ) : orders.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 text-center border shadow-sm">
-          <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <h3 className="text-lg font-bold text-gray-800">No Orders Found</h3>
-          <p className="text-gray-500 text-sm mt-1">When customers place orders, they will appear here.</p>
+
+        {/* Search & Filter Bar */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+            <input
+              type="text"
+              placeholder="Search by name, email, ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-white border rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex items-center gap-1 bg-white border px-3 py-2 rounded-xl text-xs">
+            <Filter className="w-4 h-4 text-gray-400" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="bg-transparent outline-none font-semibold text-gray-700 cursor-pointer"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="Processing">Processing</option>
+              <option value="Shipped">Shipped</option>
+              <option value="Delivered">Delivered</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {filteredOrders.length === 0 ? (
+        <div className="bg-white p-12 rounded-3xl border text-center space-y-3">
+          <Package className="w-12 h-12 text-gray-300 mx-auto" />
+          <h3 className="text-lg font-bold text-gray-800">No orders found</h3>
+          <p className="text-xs text-gray-500">Try adjusting your search or status filter.</p>
         </div>
       ) : (
-        <div className="space-y-6">
-          {orders.map((order) => (
-            <div key={order._id} className="bg-white border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
-              
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 gap-2">
-                <div>
-                  <span className="text-xs font-bold text-gray-400 uppercase">Order ID</span>
-                  <h3 className="text-sm font-bold text-gray-800">#{order._id}</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Placed on {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
-                  </p>
-                </div>
+        <div className="space-y-4">
+          {filteredOrders.map((order) => {
+            const customerName = order.customerDetails?.fullName || order.customerName || "N/A";
+            const phone = order.customerDetails?.phone || order.phone || "N/A";
+            const address = order.customerDetails?.address || order.address || "N/A";
+            const city = order.customerDetails?.city || "";
 
-                <div className="flex items-center gap-3">
-                  <span className={`px-3 py-1 text-xs font-bold rounded-full border ${getStatusBadge(order.status)}`}>
-                    {order.status}
-                  </span>
-
-                  {/* Status Controller */}
-                  <select
-                    disabled={updatingId === order._id}
-                    value={order.status}
-                    onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                    className="text-xs font-semibold bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Pending">Pending</option>
-                    <option value="Processing">Processing</option>
-                    <option value="Delivered">Delivered</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Customer & Items Details */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4">
-                {/* Customer Details */}
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Customer Details</h4>
-                  <p className="text-sm font-bold text-gray-900">{order.customerName}</p>
-                  <p className="text-sm text-gray-600">📞 {order.phone}</p>
-                  <p className="text-xs text-gray-500 mt-1">📍 {order.address}</p>
-                  <span className="inline-block text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded mt-2">
-                    Payment: {order.paymentMethod}
-                  </span>
-                </div>
-
-                {/* Items */}
-                <div className="md:col-span-2 space-y-2 border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-6">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ordered Items</h4>
-                  <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                    {order.items.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center text-sm border-b pb-1.5 last:border-0">
-                        <span className="font-semibold text-gray-800">
-                          {item.title} <span className="text-gray-500 text-xs">(x{item.quantity})</span>
-                        </span>
-                        <span className="font-bold text-gray-900">
-                          Rs. {(item.price * item.quantity).toLocaleString()}
-                        </span>
-                      </div>
-                    ))}
+            return (
+              <div key={order._id} className="bg-white rounded-2xl border shadow-sm p-6 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
+                  <div>
+                    <span className="text-xs text-gray-400 font-medium">Order ID</span>
+                    <p className="text-sm font-mono font-bold text-gray-800">#{order._id.slice(-8)}</p>
                   </div>
 
-                  <div className="flex justify-between items-center border-t pt-3 mt-3">
-                    <span className="text-sm font-bold text-gray-700">Total Amount</span>
-                    <span className="text-lg font-extrabold text-blue-600">
-                      Rs. {order.totalAmount.toLocaleString()}
-                    </span>
+                  <div>
+                    <span className="text-xs text-gray-400 font-medium">Customer</span>
+                    <p className="text-sm font-bold text-gray-800">{customerName}</p>
+                    <p className="text-xs text-gray-500">{phone}</p>
+                  </div>
+
+                  <div>
+                    <span className="text-xs text-gray-400 font-medium">Total Amount</span>
+                    <p className="text-sm font-bold text-blue-600">${order.totalAmount.toFixed(2)}</p>
+                  </div>
+
+                  {/* Status Change Selector */}
+                  <div className="flex items-center gap-2">
+                    {updatingId === order._id && <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />}
+                    <select
+                      value={order.status}
+                      onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                      disabled={updatingId === order._id}
+                      className="text-xs font-bold px-3 py-1.5 rounded-xl border bg-gray-50 text-gray-800 cursor-pointer focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Processing">Processing</option>
+                      <option value="Shipped">Shipped</option>
+                      <option value="Delivered">Delivered</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Items & Address */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <p className="font-bold text-gray-700 mb-2">Order Items:</p>
+                    <ul className="space-y-1">
+                      {order.items.map((item, idx) => (
+                        <li key={idx} className="flex justify-between text-gray-600">
+                          <span>{item.name} (x{item.quantity})</span>
+                          <span className="font-semibold">${(item.price * item.quantity).toFixed(2)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="bg-gray-50 p-3 rounded-xl space-y-1">
+                    <p className="font-bold text-gray-700">Delivery Address:</p>
+                    <p className="text-gray-600">{address}{city ? `, ${city}` : ""}</p>
                   </div>
                 </div>
               </div>
-
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
