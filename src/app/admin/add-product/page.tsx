@@ -1,21 +1,43 @@
 "use client";
 
-import { useState } from "react";
-import { PlusCircle, Loader2, Image as ImageIcon, ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { PlusCircle, PackageCheck, AlertCircle, Loader2 } from "lucide-react";
 
-export default function AddProductPage() {
+const CATEGORIES = ["Electronics", "Stationery", "Home Items", "Personal Care"];
+
+export default function AdminAddProductPage() {
+  const { data: session, status: authStatus } = useSession();
+  const router = useRouter();
+
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     price: "",
-    image: "",
-    category: "Essentials",
+    category: "Electronics",
+    images: "",
+    stock: "10",
+    isCodAvailable: true,
+    isAfterPayAvailable: false,
   });
 
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  useEffect(() => {
+    if (authStatus === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+
+    if (authStatus === "authenticated") {
+      const isAdmin = (session?.user as any)?.role === "admin";
+      if (!isAdmin) {
+        router.push("/");
+      }
+    }
+  }, [authStatus, session, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,140 +45,196 @@ export default function AddProductPage() {
     setMessage(null);
 
     try {
+      const imageUrls = formData.images
+        .split(",")
+        .map((img) => img.trim())
+        .filter((img) => img.length > 0);
+
+      const payload = {
+        ...formData,
+        price: Number(formData.price),
+        stock: Number(formData.stock),
+        images: imageUrls.length > 0 ? imageUrls : ["/placeholder.png"],
+      };
+
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
       if (data.success) {
         setMessage({ type: "success", text: "Product added successfully!" });
-        setFormData({ title: "", description: "", price: "", image: "", category: "Essentials" });
+        setFormData({
+          title: "",
+          description: "",
+          price: "",
+          category: "Electronics",
+          images: "",
+          stock: "10",
+          isCodAvailable: true,
+          isAfterPayAvailable: false,
+        });
+        router.refresh();
       } else {
-        setMessage({ type: "error", text: data.error || "Failed to add product" });
+        setMessage({ type: "error", text: data.message || "Failed to add product" });
       }
-    } catch (error) {
-      console.error("Error:", error);
-      setMessage({ type: "error", text: "Something went wrong. Please try again." });
+    } catch (err) {
+      setMessage({ type: "error", text: "An error occurred while adding the product." });
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="max-w-3xl mx-auto px-4 py-10">
-      <div className="mb-6 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 font-medium">
-          <ArrowLeft className="w-4 h-4" /> Back to Store
-        </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Add New Product</h1>
+  if (authStatus === "loading") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+        <p className="text-sm font-medium text-gray-500">Authenticating admin...</p>
       </div>
+    );
+  }
 
-      <div className="bg-white p-6 sm:p-8 rounded-2xl border shadow-sm">
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-10">
+      <div className="bg-white rounded-2xl shadow-sm border p-6 md:p-10">
+        <div className="flex items-center gap-3 border-b pb-4 mb-6">
+          <PlusCircle className="w-8 h-8 text-blue-600" />
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Add New Product</h1>
+            <p className="text-sm text-gray-500">Create product listing for A H Essentials Store</p>
+          </div>
+        </div>
+
         {message && (
           <div
-            className={`p-4 rounded-xl mb-6 text-sm font-semibold ${
-              message.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"
+            className={`p-4 rounded-xl mb-6 flex items-center gap-3 text-sm font-semibold ${
+              message.type === "success"
+                ? "bg-green-50 text-green-700 border border-green-200"
+                : "bg-red-50 text-red-700 border border-red-200"
             }`}
           >
-            {message.text}
+            {message.type === "success" ? (
+              <PackageCheck className="w-5 h-5 text-green-600" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-red-600" />
+            )}
+            <span>{message.text}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Product Title *</label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. Premium Coconut Oil 500ml"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Price (Rs.) *</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Product Title *</label>
               <input
-                type="number"
+                type="text"
                 required
-                min="0"
-                placeholder="1500"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                className="w-full px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="e.g. Hair Dryer 1200W"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Category</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Category *</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white"
               >
-                <option value="Essentials">Essentials</option>
-                <option value="Groceries">Groceries</option>
-                <option value="Household">Household</option>
-                <option value="Personal Care">Personal Care</option>
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Image URL *</label>
-            <input
-              type="url"
-              required
-              placeholder="https://images.unsplash.com/photo-..."
-              value={formData.image}
-              onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-              className="w-full px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-            />
-          </div>
-
-          {/* Image Preview */}
-          {formData.image && (
-            <div className="mt-2">
-              <p className="text-xs text-gray-500 mb-2 font-medium">Image Preview:</p>
-              <div className="relative w-28 h-28 border rounded-xl overflow-hidden bg-gray-50">
-                <Image src={formData.image} alt="Preview" fill className="object-cover" unoptimized />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Price (LKR) *</label>
+              <input
+                type="number"
+                required
+                placeholder="e.g. 4500"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+              />
             </div>
-          )}
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Stock Quantity</label>
+              <input
+                type="number"
+                placeholder="10"
+                value={formData.stock}
+                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+          </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Description *</label>
             <textarea
               required
-              rows={4}
-              placeholder="Provide details about the product..."
+              rows={3}
+              placeholder="Provide key details about the item..."
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
             ></textarea>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Image URL(s)</label>
+            <input
+              type="text"
+              placeholder="Paste image link (comma separated for multiple)"
+              value={formData.images}
+              onChange={(e) => setFormData({ ...formData, images: e.target.value })}
+              className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-xl border space-y-3">
+            <h3 className="font-semibold text-gray-800 text-sm">Payment Options Allowed</h3>
+            <div className="flex flex-wrap gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isCodAvailable}
+                  onChange={(e) => setFormData({ ...formData, isCodAvailable: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 rounded"
+                />
+                <span className="text-sm font-medium text-gray-700">Cash on Delivery (COD)</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isAfterPayAvailable}
+                  onChange={(e) => setFormData({ ...formData, isAfterPayAvailable: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 rounded"
+                />
+                <span className="text-sm font-medium text-gray-700">AfterPay Available</span>
+              </label>
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-3 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-md disabled:bg-blue-300 flex items-center justify-center gap-2"
           >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Saving Product...</span>
-              </>
-            ) : (
-              <>
-                <PlusCircle className="w-5 h-5" />
-                <span>Add Product</span>
-              </>
-            )}
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            <span>{loading ? "Adding Product..." : "Save Product to Store"}</span>
           </button>
         </form>
       </div>

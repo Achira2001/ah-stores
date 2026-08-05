@@ -1,7 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingBag, PlusCircle, Package, Store, Edit, LogIn, LogOut, User as UserIcon, ShoppingCart } from "lucide-react";
+import {
+  ShoppingBag,
+  PlusCircle,
+  Package,
+  Store,
+  Edit,
+  LogIn,
+  LogOut,
+  User as UserIcon,
+  ShoppingCart,
+  LayoutDashboard,
+} from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useSession, signOut } from "next-auth/react";
 
@@ -16,7 +27,6 @@ export default function Navbar() {
     <header className="bg-white border-b sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 font-black text-xl text-blue-600 tracking-tight">
             <Store className="w-6 h-6" />
@@ -31,7 +41,10 @@ export default function Navbar() {
 
             {/* Logged in users: My Orders */}
             {session && (
-              <Link href="/orders" className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
+              <Link
+                href="/orders"
+                className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors"
+              >
                 <ShoppingCart className="w-4 h-4 text-blue-600" />
                 My Orders
               </Link>
@@ -40,15 +53,31 @@ export default function Navbar() {
             {/* Admin Links */}
             {isAdmin && (
               <>
-                <Link href="/admin/add-product" className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors"
+                >
+                  <LayoutDashboard className="w-4 h-4 text-indigo-600" />
+                  Dashboard
+                </Link>
+                <Link
+                  href="/admin/add-product"
+                  className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors"
+                >
                   <PlusCircle className="w-4 h-4 text-blue-600" />
                   Add Product
                 </Link>
-                <Link href="/admin/manage-products" className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
+                <Link
+                  href="/admin/manage-products"
+                  className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors"
+                >
                   <Edit className="w-4 h-4 text-amber-600" />
                   Manage
                 </Link>
-                <Link href="/admin/orders" className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
+                <Link
+                  href="/admin/orders"
+                  className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors"
+                >
                   <Package className="w-4 h-4 text-purple-600" />
                   Admin Orders
                 </Link>
@@ -58,9 +87,12 @@ export default function Navbar() {
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-4">
-            
             {/* Cart Icon */}
-            <Link href="/cart" className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors" title="Cart">
+            <Link
+              href="/cart"
+              className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
+              title="Cart"
+            >
               <ShoppingBag className="w-6 h-6" />
               {totalItems > 0 && (
                 <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[11px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
@@ -72,7 +104,10 @@ export default function Navbar() {
             {/* Authentication Buttons */}
             {session ? (
               <div className="flex items-center gap-3 border-l pl-4">
-                <Link href="/orders" className="flex items-center gap-1.5 hover:bg-gray-50 px-2 py-1 rounded-xl transition">
+                <Link
+                  href="/orders"
+                  className="flex items-center gap-1.5 hover:bg-gray-50 px-2 py-1 rounded-xl transition"
+                >
                   <UserIcon className="w-4 h-4 text-gray-500" />
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-gray-800 leading-tight">
@@ -102,7 +137,6 @@ export default function Navbar() {
                 <span>Log In</span>
               </Link>
             )}
-
           </div>
         </div>
       </div>
