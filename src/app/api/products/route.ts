@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectToDatabase } from "@/lib/db";
 import Product from "@/models/Product";
 
@@ -38,16 +40,24 @@ export async function GET(request: Request) {
   }
 }
 
-// POST Create New Product
+// POST Create New Product (Admin Only)
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user as any)?.role !== "admin") {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized access" },
+        { status: 401 }
+      );
+    }
+
     await connectToDatabase();
     const body = await request.json();
 
-    const { title, description, price, image, category } = body;
+    const { title, description, price, image, imageUrl, category } = body;
+    const finalImage = imageUrl || image;
 
-    // Basic Validation Check
-    if (!title || !description || !price || !image) {
+    if (!title || !description || !price || !finalImage) {
       return NextResponse.json(
         { success: false, error: "Please fill in all required fields (title, description, price, image)" },
         { status: 400 }
@@ -58,7 +68,8 @@ export async function POST(request: Request) {
       title,
       description,
       price: Number(price),
-      image,
+      imageUrl: finalImage,
+      image: finalImage,
       category: category || "Essentials",
     });
 
