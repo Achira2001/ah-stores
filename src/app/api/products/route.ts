@@ -1,87 +1,303 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { connectToDatabase } from "@/lib/db";
-import Product from "@/models/Product";
+import { NextRequest, NextResponse } from "next/server"
+import { auth } from "@/lib/auth"
+import connectDB from "@/lib/mongodb"
+import Product from "@/models/Product"
 
-// GET All Products (With Search, Filter & Price Limit)
-export async function GET(request: Request) {
+// =========================================================
+// GET ALL PRODUCTS
+// PUBLIC
+// =========================================================
+
+export async function GET(req: NextRequest) {
   try {
-    await connectToDatabase();
+    await connectDB()
 
-    const { searchParams } = new URL(request.url);
-    const category = searchParams.get("category");
-    const maxPrice = searchParams.get("maxPrice");
-    const search = searchParams.get("search");
+    const { searchParams } = new URL(req.url)
 
-    let query: Record<string, any> = {};
+    const category = searchParams.get("category")
+    const sort = searchParams.get("sort")
+    const search = searchParams.get("search")
 
-    if (category && category !== "All") {
-      query.category = category;
+    const page = Math.max(
+      1,
+      parseInt(searchParams.get("page") || "1")
+    )
+
+    const limit = Math.min(
+      100,
+      Math.max(
+        1,
+        parseInt(searchParams.get("limit") || "12")
+      )
+    )
+
+    const query: Record<string, any> = {}
+
+    if (category && category !== "all") {
+      query.category = category
     }
 
-    if (maxPrice && !isNaN(Number(maxPrice))) {
-      query.price = { $lte: Number(maxPrice) };
+    if (search) {
+      query.$text = {
+        $search: search,
+      }
     }
 
-    if (search && search.trim() !== "") {
-      query.title = { $regex: search.trim(), $options: "i" };
+    let sortOption: Record<string, 1 | -1> = {
+      createdAt: -1,
     }
 
-    const products = await Product.find(query).sort({ createdAt: -1 });
+    switch (sort) {
+      case "price-asc":
+        sortOption = { price: 1 }
+        break
 
-    return NextResponse.json({ success: true, data: products }, { status: 200 });
-  } catch (error: any) {
-    console.error("Error in GET /api/products:", error);
+      case "price-desc":
+        sortOption = { price: -1 }
+        break
+
+      case "name-asc":
+        sortOption = { name: 1 }
+        break
+
+      case "name-desc":
+        sortOption = { name: -1 }
+        break
+
+      case "newest":
+        sortOption = { createdAt: -1 }
+        break
+    }
+
+    const skip = (page - 1) * limit
+
+    const [products, total] = await Promise.all([
+      Product.find(query)
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      Product.countDocuments(query),
+    ])
+
+    return NextResponse.json({
+      success: true,
+      products,
+      total,
+      pages: Math.ceil(total / limit),
+      currentPage: page,
+    })
+  } catch (error) {
+    console.error("GET /api/products error:", error)
+
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to fetch products" },
-      { status: 500 }
-    );
+      {
+        success: false,
+        error: "Failed to fetch products",
+      },
+      {
+        status: 500,
+      }
+    )
   }
 }
 
-// POST Create New Product (Admin Only)
-export async function POST(request: Request) {
+// =========================================================
+// POST PRODUCT
+// ADMIN ONLY
+// =========================================================
+
+export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || (session.user as any)?.role !== "admin") {
+    const session = await auth()
+
+    if (!session || session.user.role !== "admin") {
       return NextResponse.json(
-        { success: false, error: "Unauthorized access" },
-        { status: 401 }
-      );
+        {
+          error: "Unauthorized",
+        },
+        {
+          status: 403,
+        }
+      )
     }
 
-    await connectToDatabase();
-    const body = await request.json();
+    const body = await req.json()
 
-    const { title, description, price, image, imageUrl, category } = body;
-    const finalImage = imageUrl || image;
-
-    if (!title || !description || !price || !finalImage) {
+    if (!body.name?.trim()) {
       return NextResponse.json(
-        { success: false, error: "Please fill in all required fields (title, description, price, image)" },
-        { status: 400 }
-      );
+        {
+          error: "Product name is required",
+        },
+        {
+          status: 400,
+        }
+      )
     }
 
-    const newProduct = await Product.create({
-      title,
-      description,
-      price: Number(price),
-      imageUrl: finalImage,
-      image: finalImage,
-      category: category || "Essentials",
-    });
+    if (!body.description?.trim()) {
+      return NextResponse.json(
+        {
+          error: "Product description is required",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    if (!body.category?.trim()) {
+      return NextResponse.json(
+        {
+          error: "Category is required",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    if (!Array.isArray(body.images) || body.images.length === 0) {
+      return NextResponse.json(
+        {
+          error: "At least one product image is required",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    if (
+      !Array.isArray(body.colorVariants) ||
+      body.colorVariants.length === 0
+    ) {
+      return NextResponse.json(
+        {
+          error: "At least one colour variant is required",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    // Validate every colour variant
+    for (const variant of body.colorVariants) {
+  if (!variant || typeof variant !== "object") {
+    return NextResponse.json(
+      {
+        error: "Invalid colour variant",
+      },
+      {
+        status: 400,
+      }
+    )
+  }
+
+  if (!variant.color?.trim()) {
+    return NextResponse.json(
+      {
+        error: "Every colour must have a name",
+      },
+      {
+        status: 400,
+      }
+    )
+  }
+
+  if (
+    !Array.isArray(variant.images) ||
+    variant.images.length === 0
+  ) {
+    return NextResponse.json(
+      {
+        error: `Colour "${variant.color}" must have at least one image`,
+      },
+      {
+        status: 400,
+      }
+    )
+  }
+
+  if (
+    variant.stock === undefined ||
+    !Number.isInteger(Number(variant.stock)) ||
+    Number(variant.stock) < 0
+  ) {
+    return NextResponse.json(
+      {
+        error: `Invalid stock for colour "${variant.color}"`,
+      },
+      {
+        status: 400,
+      }
+    )
+  }
+}
+
+    await connectDB()
+
+    const colorVariants = body.colorVariants.map(
+  (variant: {
+    color: string
+    images: string[]
+    stock: number
+  }) => ({
+    color: variant.color.trim(),
+    images: variant.images,
+    stock: Number(variant.stock),
+  })
+)
+
+    const product = await Product.create({
+      name: body.name.trim(),
+      description: body.description.trim(),
+
+      price: Number(body.price),
+
+      comparePrice:
+        body.comparePrice !== undefined &&
+        body.comparePrice !== null &&
+        body.comparePrice !== ""
+          ? Number(body.comparePrice)
+          : undefined,
+
+      images: body.images,
+
+      colorVariants,
+
+      category: body.category.trim(),
+
+      stock: Number(body.stock),
+
+      codAvailable: Boolean(body.codAvailable),
+
+      featured: Boolean(body.featured),
+    })
 
     return NextResponse.json(
-      { success: true, message: "Product created successfully", data: newProduct },
-      { status: 201 }
-    );
+      {
+        success: true,
+        message: "Product created successfully",
+        product,
+      },
+      {
+        status: 201,
+      }
+    )
   } catch (error: any) {
-    console.error("Error in POST /api/products:", error);
+    console.error("POST /api/products error:", error)
+
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to create product" },
-      { status: 500 }
-    );
+      {
+        error:
+          error?.message || "Failed to create product",
+      },
+      {
+        status: 500,
+      }
+    )
   }
 }

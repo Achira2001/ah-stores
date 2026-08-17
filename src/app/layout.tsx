@@ -1,34 +1,48 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import Navbar from "@/components/Navbar";
-import AuthProvider from "@/components/AuthProvider";
-import { CartProvider } from "@/context/CartContext";
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import "./globals.css"
+import { Toaster } from "react-hot-toast"
+import Navbar from "@/components/Navbar"
+import Footer from "@/components/Footer"
+import Providers from "@/components/Providers"
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "A H Essentials | Daily Store",
-  description: "Shop quality daily essentials online.",
-};
+  title: "AH Store - Sri Lanka's Premier Online Shopping",
+  description:
+    "Your one-stop shop for electronics, home essentials, books, personal care and more. Fast delivery across Sri Lanka.",
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en">
-      <body className={`${inter.className} antialiased bg-gray-50 text-gray-900`}>
-        <AuthProvider>
-          <CartProvider>
-            <div className="flex flex-col min-h-screen">
-              <Navbar />
-              <main className="flex-1">{children}</main>
-            </div>
-          </CartProvider>
-        </AuthProvider>
+      <body className={inter.className}>
+        <Providers>
+          <Navbar />
+
+          <main className="min-h-screen">
+            {children}
+          </main>
+
+          <Footer />
+
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: "#363636",
+                color: "#fff",
+              },
+            }}
+          />
+        </Providers>
       </body>
     </html>
-  );
+  )
 }

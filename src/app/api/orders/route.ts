@@ -1,227 +1,948 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { connectToDatabase } from "@/lib/db";
-import Order from "@/models/Order";
-import mongoose from "mongoose";
-import { sendOrderStatusEmail } from "@/lib/email"; // 👈 Integrated transactional email helper
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server"
 
-// GET Orders (Supports Search, Filter, and Admin/User Scope)
-export async function GET(request: Request) {
+import { auth } from "@/lib/auth"
+import connectDB from "@/lib/mongodb"
+
+import Order from "@/models/Order"
+import Product from "@/models/Product"
+import Notification from "@/models/Notification"
+import User from "@/models/User"
+
+import mongoose from "mongoose"
+
+import {
+  sendOrderConfirmationEmail,
+} from "@/lib/mail"
+
+// =====================================================
+// GET ORDERS
+// =====================================================
+
+export async function GET(
+  req: NextRequest
+) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth()
 
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json(
-        { success: false, error: "Unauthorized access" },
-        { status: 401 }
-      );
+        {
+          error: "Unauthorized",
+        },
+        {
+          status: 401,
+        }
+      )
     }
 
-    await connectToDatabase();
-    const isAdmin = (session.user as any)?.role === "admin";
-    const { searchParams } = new URL(request.url);
+    await connectDB()
 
-    const statusFilter = searchParams.get("status");
-    const searchQuery = searchParams.get("search")?.trim();
-
-    // Build Mongoose Query
-    const query: Record<string, any> = {};
-
-    // Restrict non-admins to their own orders
-    if (!isAdmin) {
-      query.userId = (session.user as any).id;
+    if (!session.user.email) {
+      return NextResponse.json(
+        {
+          error:
+            "User email not available.",
+        },
+        {
+          status: 400,
+        }
+      )
     }
 
-    // Apply optional status filter
-    if (statusFilter && statusFilter !== "All") {
-      query.status = statusFilter;
+    const mongoUser =
+      await User.findOne({
+        email:
+          session.user.email,
+      }).select(
+        "_id role name email"
+      )
+
+    if (!mongoUser) {
+      return NextResponse.json(
+        {
+          error:
+            "User account not found",
+        },
+        {
+          status: 404,
+        }
+      )
     }
 
-    // Apply optional text search (Name, Email, or Mongo ObjectId)
-    if (searchQuery) {
-      const searchConditions: Record<string, any>[] = [
-        { "customerDetails.fullName": { $regex: searchQuery, $options: "i" } },
-        { "customerDetails.email": { $regex: searchQuery, $options: "i" } },
-        { customerName: { $regex: searchQuery, $options: "i" } },
-        { email: { $regex: searchQuery, $options: "i" } },
-      ];
+    const query =
+      mongoUser.role === "admin"
+        ? {}
+        : {
+            user: mongoUser._id,
+          }
 
-      // If search query is a valid 24-char ObjectId, query by _id directly
-      if (mongoose.Types.ObjectId.isValid(searchQuery)) {
-        searchConditions.push({ _id: searchQuery });
+    const orders =
+      await Order.find(query)
+        .populate(
+          "user",
+          "_id name email"
+        )
+        .populate(
+          "items.product",
+          "name images colorVariants stock"
+        )
+        .sort({
+          createdAt: -1,
+        })
+        .lean()
+
+    return NextResponse.json(
+      orders
+    )
+  } catch (error) {
+    console.error(
+      "Get orders error:",
+      error
+    )
+
+    return NextResponse.json(
+      {
+        error:
+          "Failed to fetch orders",
+      },
+      {
+        status: 500,
       }
-
-      query.$or = searchConditions;
-    }
-
-    const orders = await Order.find(query).sort({ createdAt: -1 });
-
-    return NextResponse.json(
-      { success: true, count: orders.length, data: orders },
-      { status: 200 }
-    );
-  } catch (error: any) {
-    console.error("Error fetching orders:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to fetch orders" },
-      { status: 500 }
-    );
+    )
   }
 }
 
-// POST Create Order (Checkout)
-export async function POST(request: Request) {
+// =====================================================
+// POST CREATE COD ORDER
+// =====================================================
+
+export async function POST(
+  req: NextRequest
+) {
   try {
-    const session = await getServerSession(authOptions);
-    await connectToDatabase();
+    const session = await auth()
 
-    const body = await request.json();
-    const { customerDetails, items, totalAmount, paymentMethod } = body;
-
-    const fullName = customerDetails?.fullName || body.customerName;
-    const phone = customerDetails?.phone || body.phone;
-    const address = customerDetails?.address || body.address;
-    const email = customerDetails?.email || body.email || session?.user?.email || "";
-    const city = customerDetails?.city || body.city;
-
-    if (!fullName || !phone || !address || !items || !Array.isArray(items) || items.length === 0) {
+    if (!session?.user) {
       return NextResponse.json(
-        { success: false, error: "Missing required order details or empty cart" },
-        { status: 400 }
-      );
+        {
+          error: "Unauthorized",
+        },
+        {
+          status: 401,
+        }
+      )
     }
 
-    if (typeof totalAmount !== "number" || totalAmount <= 0) {
-      return NextResponse.json(
-        { success: false, error: "Invalid total amount" },
-        { status: 400 }
-      );
-    }
+    const body =
+      await req.json()
 
-    const orderData: Record<string, any> = {
-      customerDetails: {
-        fullName,
-        email,
-        phone,
-        address,
-        city: city || "",
-      },
-      paymentMethod: paymentMethod || "Cash on Delivery",
+    const {
       items,
-      totalAmount,
-      status: "Pending",
-    };
+      shippingAddress,
+      paymentMethod,
+    } = body
 
-    if (session?.user) {
-      orderData.userId = (session.user as any).id;
-    }
+    // =================================================
+    // VALIDATE ITEMS
+    // =================================================
 
-    const newOrder = await Order.create(orderData);
-
-    // 🚀 Send initial Order Received confirmation email in background
-    if (email) {
-      sendOrderStatusEmail({
-        toEmail: email,
-        customerName: fullName,
-        orderId: newOrder._id.toString(),
-        status: "Processing", // Sends order receipt / processing confirmation
-        totalAmount,
-      }).catch((err) => console.error("Initial order email failed:", err));
-    }
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Order placed successfully",
-        orderId: newOrder._id,
-        order: newOrder,
-      },
-      { status: 201 }
-    );
-  } catch (error: any) {
-    console.error("Error creating order:", error);
-    return NextResponse.json(
-      { success: false, error: error.message || "Failed to place order" },
-      { status: 500 }
-    );
-  }
-}
-
-// PATCH Update Order Status (Admin Only + Triggers Email Notification)
-export async function PATCH(request: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || (session.user as any)?.role !== "admin") {
+    if (
+      !Array.isArray(items) ||
+      items.length === 0
+    ) {
       return NextResponse.json(
-        { success: false, error: "Unauthorized access" },
-        { status: 401 }
-      );
+        {
+          error:
+            "Your cart is empty.",
+        },
+        {
+          status: 400,
+        }
+      )
     }
 
-    await connectToDatabase();
-    const { orderId, status } = await request.json();
+    // =================================================
+    // VALIDATE PAYMENT METHOD
+    // =================================================
 
-    const validStatuses = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
-    if (!orderId || !status || !validStatuses.includes(status)) {
+    if (
+      !["cod", "card"].includes(
+        paymentMethod
+      )
+    ) {
       return NextResponse.json(
-        { success: false, error: "Valid Order ID and Status are required" },
-        { status: 400 }
-      );
+        {
+          error:
+            "Invalid payment method.",
+        },
+        {
+          status: 400,
+        }
+      )
     }
 
-    // Fetch existing order to check prior status
-    const existingOrder = await Order.findById(orderId);
-    if (!existingOrder) {
+    /*
+     * Card orders should be created through the Stripe
+     * checkout endpoint, not this endpoint.
+     */
+    if (paymentMethod === "card") {
       return NextResponse.json(
-        { success: false, error: "Order not found" },
-        { status: 404 }
-      );
+        {
+          error:
+            "Card payments must be processed through Stripe Checkout.",
+        },
+        {
+          status: 400,
+        }
+      )
     }
 
-    const previousStatus = existingOrder.status;
+    // =================================================
+    // SHIPPING ADDRESS
+    // =================================================
 
-    // Update status in Database
-    const updatedOrder = await Order.findByIdAndUpdate(
-      orderId,
-      { status },
-      { new: true }
-    );
+    if (!shippingAddress) {
+      return NextResponse.json(
+        {
+          error:
+            "Shipping address is required.",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
 
-    // 🚀 Trigger Resend Email Notification when status actually changes
-    if (previousStatus !== status) {
-      const email =
-        updatedOrder.customerDetails?.email || updatedOrder.email;
-      const customerName =
-        updatedOrder.customerDetails?.fullName ||
-        updatedOrder.customerName ||
-        "Valued Customer";
+    const {
+      fullName,
+      phone,
+      address,
+      city,
+      postalCode,
+    } = shippingAddress
 
-      if (email) {
-        sendOrderStatusEmail({
-          toEmail: email,
-          customerName,
-          orderId: updatedOrder._id.toString(),
-          status: updatedOrder.status,
-          totalAmount: updatedOrder.totalAmount,
-        }).catch((err) => console.error("Status update email failed:", err));
+    if (
+      !fullName?.trim() ||
+      !phone?.trim() ||
+      !address?.trim() ||
+      !city?.trim()
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Please provide all required shipping details.",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    // =================================================
+    // DATABASE
+    // =================================================
+
+    await connectDB()
+
+    if (!session.user.email) {
+      return NextResponse.json(
+        {
+          error:
+            "Authenticated user email not available.",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    const mongoUser =
+      await User.findOne({
+        email:
+          session.user.email,
+      }).select(
+        "_id name email role"
+      )
+
+    if (!mongoUser) {
+      return NextResponse.json(
+        {
+          error:
+            "User account not found in database.",
+        },
+        {
+          status: 404,
+        }
+      )
+    }
+
+    // =================================================
+    // PREPARE ORDER
+    // =================================================
+
+    const orderItems: {
+      product: mongoose.Types.ObjectId
+      name: string
+      image: string
+      price: number
+      quantity: number
+      color?: string
+    }[] = []
+
+    let calculatedTotal = 0
+
+    const processedVariants =
+      new Set<string>()
+
+    // =================================================
+    // VALIDATE EVERY CART ITEM
+    // =================================================
+
+    for (const item of items) {
+      const productId =
+        String(
+          item?.productId || ""
+        ).trim()
+
+      const color =
+        item?.color
+          ? String(
+              item.color
+            ).trim()
+          : undefined
+
+      const quantity =
+        Number(
+          item?.quantity
+        )
+
+      if (
+        !mongoose.Types.ObjectId.isValid(
+          productId
+        )
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Invalid product ID.",
+          },
+          {
+            status: 400,
+          }
+        )
+      }
+
+      if (
+        !Number.isInteger(
+          quantity
+        ) ||
+        quantity <= 0
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Invalid product quantity.",
+          },
+          {
+            status: 400,
+          }
+        )
+      }
+
+      const variantKey =
+        `${productId}::${color || "__default__"}`
+
+      if (
+        processedVariants.has(
+          variantKey
+        )
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Duplicate product colour entries are not allowed.",
+          },
+          {
+            status: 400,
+          }
+        )
+      }
+
+      processedVariants.add(
+        variantKey
+      )
+
+      const product =
+        await Product.findById(
+          productId
+        )
+
+      if (!product) {
+        return NextResponse.json(
+          {
+            error:
+              "Product not found.",
+          },
+          {
+            status: 400,
+          }
+        )
+      }
+
+      // =================================================
+      // COLOUR PRODUCT
+      // =================================================
+
+      if (
+        product.colorVariants &&
+        product.colorVariants.length >
+          0
+      ) {
+        if (!color) {
+          return NextResponse.json(
+            {
+              error:
+                `Please select a colour for ${product.name}.`,
+            },
+            {
+              status: 400,
+            }
+          )
+        }
+
+        const variant =
+          product.colorVariants.find(
+            (v) =>
+              v.color === color
+          )
+
+        if (!variant) {
+          return NextResponse.json(
+            {
+              error:
+                `Colour ${color} is not available for ${product.name}.`,
+            },
+            {
+              status: 400,
+            }
+          )
+        }
+
+        if (
+          variant.stock <
+          quantity
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                `Insufficient ${color} stock for ${product.name}. Available: ${variant.stock}`,
+            },
+            {
+              status: 400,
+            }
+          )
+        }
+
+        if (
+          paymentMethod === "cod" &&
+          !product.codAvailable
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                `${product.name} does not support Cash on Delivery.`,
+            },
+            {
+              status: 400,
+            }
+          )
+        }
+
+        const price =
+          Number(product.price)
+
+        const image =
+          variant.images?.[0] ||
+          product.images?.[0] ||
+          ""
+
+        calculatedTotal +=
+          price * quantity
+
+        orderItems.push({
+          product:
+            product._id as mongoose.Types.ObjectId,
+
+          name:
+            product.name,
+
+          image,
+
+          price,
+
+          quantity,
+
+          color,
+        })
+      } else {
+        // =================================================
+        // NORMAL PRODUCT
+        // =================================================
+
+        if (
+          product.stock <
+          quantity
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                `Insufficient stock for ${product.name}. Available: ${product.stock}`,
+            },
+            {
+              status: 400,
+            }
+          )
+        }
+
+        if (
+          paymentMethod === "cod" &&
+          !product.codAvailable
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                `${product.name} does not support Cash on Delivery.`,
+            },
+            {
+              status: 400,
+            }
+          )
+        }
+
+        const price =
+          Number(product.price)
+
+        const image =
+          product.images?.[0] ||
+          ""
+
+        calculatedTotal +=
+          price * quantity
+
+        orderItems.push({
+          product:
+            product._id as mongoose.Types.ObjectId,
+
+          name:
+            product.name,
+
+          image,
+
+          price,
+
+          quantity,
+        })
       }
     }
 
+    calculatedTotal =
+      Math.round(
+        calculatedTotal * 100
+      ) / 100
+
+    // =================================================
+    // REDUCE STOCK ATOMICALLY
+    // =================================================
+
+    const stockUpdated: {
+      productId: mongoose.Types.ObjectId
+      color?: string
+      quantity: number
+    }[] = []
+
+    try {
+      for (
+        const item of orderItems
+      ) {
+        if (item.color) {
+          const updated =
+            await Product.findOneAndUpdate(
+              {
+                _id:
+                  item.product,
+
+                colorVariants: {
+                  $elemMatch: {
+                    color:
+                      item.color,
+
+                    stock: {
+                      $gte:
+                        item.quantity,
+                    },
+                  },
+                },
+              },
+              {
+                $inc: {
+                  "colorVariants.$[variant].stock":
+                    -item.quantity,
+
+                  stock:
+                    -item.quantity,
+                },
+              },
+              {
+                arrayFilters: [
+                  {
+                    "variant.color":
+                      item.color,
+
+                    "variant.stock":
+                      {
+                        $gte:
+                          item.quantity,
+                      },
+                  },
+                ],
+
+                new: true,
+              }
+            )
+
+          if (!updated) {
+            throw new Error(
+              `Stock changed while placing the order for ${item.name} (${item.color}).`
+            )
+          }
+        } else {
+          const updated =
+            await Product.findOneAndUpdate(
+              {
+                _id:
+                  item.product,
+
+                stock: {
+                  $gte:
+                    item.quantity,
+                },
+              },
+              {
+                $inc: {
+                  stock:
+                    -item.quantity,
+                },
+              },
+              {
+                new: true,
+              }
+            )
+
+          if (!updated) {
+            throw new Error(
+              `Stock changed while placing the order for ${item.name}.`
+            )
+          }
+        }
+
+        stockUpdated.push({
+          productId:
+            item.product,
+
+          color:
+            item.color,
+
+          quantity:
+            item.quantity,
+        })
+      }
+    } catch (stockError) {
+      /*
+       * Roll back any stock reductions that happened
+       * before the failed item.
+       */
+      for (
+        const updated of stockUpdated
+      ) {
+        try {
+          if (updated.color) {
+            await Product.findOneAndUpdate(
+              {
+                _id:
+                  updated.productId,
+              },
+              {
+                $inc: {
+                  "colorVariants.$[variant].stock":
+                    updated.quantity,
+
+                  stock:
+                    updated.quantity,
+                },
+              },
+              {
+                arrayFilters: [
+                  {
+                    "variant.color":
+                      updated.color,
+                  },
+                ],
+              }
+            )
+          } else {
+            await Product.findByIdAndUpdate(
+              updated.productId,
+              {
+                $inc: {
+                  stock:
+                    updated.quantity,
+                },
+              }
+            )
+          }
+        } catch (rollbackError) {
+          console.error(
+            "Stock rollback error:",
+            rollbackError
+          )
+        }
+      }
+
+      throw stockError
+    }
+
+    // =================================================
+    // CREATE ORDER
+    // =================================================
+
+    let order
+
+    try {
+      order =
+        await Order.create({
+          user:
+            mongoUser._id,
+
+          items:
+            orderItems,
+
+          shippingAddress: {
+            fullName:
+              fullName.trim(),
+
+            phone:
+              phone.trim(),
+
+            address:
+              address.trim(),
+
+            city:
+              city.trim(),
+
+            postalCode:
+              postalCode?.trim() ||
+              undefined,
+          },
+
+          totalAmount:
+            calculatedTotal,
+
+          paymentMethod:
+            "cod",
+
+          status:
+            "pending",
+
+          paymentStatus:
+            "pending",
+        })
+    } catch (orderError) {
+      /*
+       * If order creation fails, restore stock.
+       */
+      for (
+        const updated of stockUpdated
+      ) {
+        try {
+          if (updated.color) {
+            await Product.findOneAndUpdate(
+              {
+                _id:
+                  updated.productId,
+              },
+              {
+                $inc: {
+                  "colorVariants.$[variant].stock":
+                    updated.quantity,
+
+                  stock:
+                    updated.quantity,
+                },
+              },
+              {
+                arrayFilters: [
+                  {
+                    "variant.color":
+                      updated.color,
+                  },
+                ],
+              }
+            )
+          } else {
+            await Product.findByIdAndUpdate(
+              updated.productId,
+              {
+                $inc: {
+                  stock:
+                    updated.quantity,
+                },
+              }
+            )
+          }
+        } catch (rollbackError) {
+          console.error(
+            "Order creation rollback error:",
+            rollbackError
+          )
+        }
+      }
+
+      throw orderError
+    }
+
+    // =================================================
+    // CUSTOMER NOTIFICATION
+    // =================================================
+
+    try {
+      await Notification.create({
+        user:
+          mongoUser._id,
+
+        title:
+          "Order Placed Successfully",
+
+        message:
+          `Your order #${order._id
+            .toString()
+            .slice(-6)} has been placed.`,
+
+        type:
+          "order",
+
+        link:
+          "/orders",
+      })
+    } catch (error) {
+      console.error(
+        "Customer notification error:",
+        error
+      )
+    }
+
+    // =================================================
+    // ADMIN NOTIFICATION
+    // =================================================
+
+    try {
+      const admins =
+        await User.find({
+          role: "admin",
+        }).select("_id")
+
+      await Promise.all(
+        admins.map((admin) =>
+          Notification.create({
+            user:
+              admin._id,
+
+            title:
+              "New Order Received",
+
+            message:
+              `New order #${order._id
+                .toString()
+                .slice(-6)} for LKR ${calculatedTotal.toLocaleString()}`,
+
+            type:
+              "order",
+
+            link:
+              "/dashboard/orders",
+          })
+        )
+      )
+    } catch (error) {
+      console.error(
+        "Admin notification error:",
+        error
+      )
+    }
+
+    // =================================================
+    // EMAIL
+    // =================================================
+
+    if (
+      session.user.email
+    ) {
+      try {
+        await sendOrderConfirmationEmail(
+          session.user.email,
+          {
+            orderId:
+              order._id
+                .toString()
+                .slice(-6),
+
+            total:
+              calculatedTotal,
+
+            paymentMethod:
+              "cod",
+          }
+        )
+      } catch (error) {
+        console.error(
+          "Failed to send order confirmation email:",
+          error
+        )
+      }
+    }
+
+    // =================================================
+    // SUCCESS
+    // =================================================
+
     return NextResponse.json(
       {
-        success: true,
-        message: "Order status updated and customer notified",
-        order: updatedOrder,
+        message:
+          "Order placed successfully",
+
+        order,
       },
-      { status: 200 }
-    );
+      {
+        status: 201,
+      }
+    )
   } catch (error: any) {
-    console.error("Error updating order status:", error);
+    console.error(
+      "Create order error:",
+      error
+    )
+
     return NextResponse.json(
-      { success: false, error: "Failed to update order status" },
-      { status: 500 }
-    );
+      {
+        error:
+          error?.message ||
+          "Failed to place order",
+      },
+      {
+        status: 500,
+      }
+    )
   }
 }
