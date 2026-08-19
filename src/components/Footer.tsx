@@ -24,8 +24,15 @@ const TwitterIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-300 w-full border-t border-gray-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+    <footer className="relative bg-[#0A2E31] text-stone-300 w-full">
+      {/* Decorative top wave */}
+      <div className="absolute top-0 left-0 right-0 -translate-y-full overflow-hidden leading-none pointer-events-none">
+        <svg viewBox="0 0 1200 24" preserveAspectRatio="none" className="w-full h-6 fill-[#0A2E31]">
+          <path d="M0,12 C150,24 350,0 600,12 C850,24 1050,0 1200,12 L1200,24 L0,24 Z" />
+        </svg>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 lg:py-16">
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12">
           
@@ -33,7 +40,7 @@ export default function Footer() {
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center">
               {/* Added a white background wrapper so the dark logo text is readable on the dark footer */}
-              <div className="bg-white px-3 py-2 rounded-lg inline-block">
+              <div className="bg-white px-3 py-2 rounded-xl inline-block shadow-lg">
                 <img 
                   src="/logo.png" 
                   alt="ShopStore.lk Logo" 
@@ -42,30 +49,30 @@ export default function Footer() {
               </div>
             </div>
             
-            <p className="text-gray-400 text-base max-w-md leading-relaxed">
+            <p className="text-stone-400 text-base max-w-md leading-relaxed">
               Sri Lanka's premier online shopping destination. Quality products, fast delivery, 
               and exceptional service right to your doorstep.
             </p>
             
-            <div className="flex space-x-4 pt-2">
+            <div className="flex space-x-3 pt-2">
               <a
                 href="#"
                 aria-label="Facebook"
-                className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-blue-600 hover:text-white transition-all duration-300"
+                className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-stone-300 hover:bg-[#E8A33D] hover:text-[#0A2E31] hover:border-[#E8A33D] transition-all duration-300"
               >
                 <FacebookIcon className="w-5 h-5" />
               </a>
               <a
                 href="#"
                 aria-label="Instagram"
-                className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-pink-600 hover:text-white transition-all duration-300"
+                className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-stone-300 hover:bg-[#E8A33D] hover:text-[#0A2E31] hover:border-[#E8A33D] transition-all duration-300"
               >
                 <InstagramIcon className="w-5 h-5" />
               </a>
               <a
                 href="#"
                 aria-label="X (Twitter)"
-                className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-gray-700 hover:text-white transition-all duration-300"
+                className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-stone-300 hover:bg-[#E8A33D] hover:text-[#0A2E31] hover:border-[#E8A33D] transition-all duration-300"
               >
                 <TwitterIcon className="w-5 h-5" />
               </a>
@@ -77,22 +84,22 @@ export default function Footer() {
             <h3 className="text-white font-semibold text-lg tracking-wide">Quick Links</h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/" className="text-gray-400 hover:text-white hover:translate-x-1 inline-block transition-all duration-200">
+                <Link href="/" className="text-stone-400 hover:text-[#E8A33D] hover:translate-x-1 inline-block transition-all duration-200">
                   Home
                 </Link>
               </li>
               <li>
-                <Link href="/products" className="text-gray-400 hover:text-white hover:translate-x-1 inline-block transition-all duration-200">
+                <Link href="/products" className="text-stone-400 hover:text-[#E8A33D] hover:translate-x-1 inline-block transition-all duration-200">
                   All Products
                 </Link>
               </li>
               <li>
-                <Link href="/cart" className="text-gray-400 hover:text-white hover:translate-x-1 inline-block transition-all duration-200">
+                <Link href="/cart" className="text-stone-400 hover:text-[#E8A33D] hover:translate-x-1 inline-block transition-all duration-200">
                   Shopping Cart
                 </Link>
               </li>
               <li>
-                <Link href="/profile" className="text-gray-400 hover:text-white hover:translate-x-1 inline-block transition-all duration-200">
+                <Link href="/profile" className="text-stone-400 hover:text-[#E8A33D] hover:translate-x-1 inline-block transition-all duration-200">
                   My Account
                 </Link>
               </li>
@@ -103,16 +110,16 @@ export default function Footer() {
           <div className="space-y-6">
             <h3 className="text-white font-semibold text-lg tracking-wide">Contact Us</h3>
             <ul className="space-y-4">
-              <li className="flex items-start space-x-3 text-gray-400">
-                <MapPin className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+              <li className="flex items-start space-x-3 text-stone-400">
+                <MapPin className="w-5 h-5 text-[#E8A33D] flex-shrink-0 mt-0.5" />
                 <span>Colombo, Sri Lanka</span>
               </li>
-              <li className="flex items-center space-x-3 text-gray-400">
-                <Phone className="w-5 h-5 text-blue-500 flex-shrink-0" />
+              <li className="flex items-center space-x-3 text-stone-400">
+                <Phone className="w-5 h-5 text-[#E8A33D] flex-shrink-0" />
                 <span>+94 70 280 9286</span>
               </li>
-              <li className="flex items-center space-x-3 text-gray-400">
-                <Mail className="w-5 h-5 text-blue-500 flex-shrink-0" />
+              <li className="flex items-center space-x-3 text-stone-400">
+                <Mail className="w-5 h-5 text-[#E8A33D] flex-shrink-0" />
                 <a href="mailto:support@ahstore.lk" className="hover:text-white transition-colors">
                   support@ahstore.lk
                 </a>
@@ -123,7 +130,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 text-sm text-gray-500">
+        <div className="border-t border-white/10 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 text-sm text-stone-500">
           <p>&copy; {new Date().getFullYear()} ShopStore Sri Lanka. All rights reserved.</p>
           <div className="flex space-x-6">
             <Link href="/privacy" className="hover:text-white transition-colors">

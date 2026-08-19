@@ -46,60 +46,62 @@ export default async function ProductsPage({
   const { products, total, pages, currentPage } = await getProducts(searchParams)
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Sidebar Filters */}
-        <aside className="w-full md:w-64 flex-shrink-0">
-          <div className="sticky top-24">
-            <CategoryFilter />
-          </div>
-        </aside>
-
-        {/* Product Grid */}
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">
-              All Products
-              <span className="text-sm font-normal text-gray-500 ml-2">({total} items)</span>
-            </h1>
-            <SortDropdown />
-          </div>
-
-          {products.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-gray-500 text-lg">No products found</p>
+    <div className="bg-[#FAF7F1] min-h-screen">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-10">
+        <div className="flex flex-col md:flex-row gap-8 lg:gap-10">
+          {/* Sidebar Filters */}
+          <aside className="w-full md:w-64 flex-shrink-0">
+            <div className="sticky top-24 bg-white border border-stone-200 rounded-2xl p-5 shadow-sm">
+              <CategoryFilter />
             </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((product: any) => (
-                  <ProductCard key={product._id} product={product} />
-                ))}
-              </div>
+          </aside>
 
-              {/* Pagination */}
-              {pages > 1 && (
-                <div className="mt-8 flex justify-center space-x-2">
-                  {Array.from({ length: pages }, (_, i) => i + 1).map((page) => (
-                    <a
-                      key={page}
-                      href={`?${new URLSearchParams({
-                        ...searchParams,
-                        page: page.toString(),
-                      } as Record<string, string>).toString()}`}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                        currentPage === page
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      {page}
-                    </a>
+          {/* Product Grid */}
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 bg-white border border-stone-200 rounded-2xl px-5 py-4 shadow-sm">
+              <h1 className="text-xl lg:text-2xl font-black text-[#201C1B]">
+                All Products
+                <span className="text-sm font-normal text-stone-500 ml-2">({total} items)</span>
+              </h1>
+              <SortDropdown />
+            </div>
+
+            {products.length === 0 ? (
+              <div className="text-center py-20 bg-white border border-stone-200 rounded-2xl">
+                <p className="text-stone-500 text-lg">No products found</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                  {products.map((product: any) => (
+                    <ProductCard key={product._id} product={product} />
                   ))}
                 </div>
-              )}
-            </>
-          )}
+
+                {/* Pagination */}
+                {pages > 1 && (
+                  <div className="mt-10 flex justify-center flex-wrap gap-2">
+                    {Array.from({ length: pages }, (_, i) => i + 1).map((page) => (
+                      <a
+                        key={page}
+                        href={`?${new URLSearchParams({
+                          ...searchParams,
+                          page: page.toString(),
+                        } as Record<string, string>).toString()}`}
+                        className={`min-w-[42px] h-[42px] flex items-center justify-center rounded-xl text-sm font-semibold transition ${
+                          currentPage === page
+                            ? "bg-[#0D5C63] text-white shadow-sm"
+                            : "bg-white border border-stone-200 text-stone-700 hover:border-[#0D5C63] hover:text-[#0D5C63]"
+                        }`}
+                      >
+                        {page}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

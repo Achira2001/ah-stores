@@ -136,11 +136,11 @@ export default function ProductCard({
       : `/products/${product._id}`
 
   return (
-    <div className="group bg-white rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+    <div className="group relative bg-white rounded-2xl border border-stone-200 shadow-sm hover:shadow-2xl hover:shadow-teal-900/10 hover:-translate-y-1 hover:border-[#0D5C63]/30 transition-all duration-300 overflow-hidden flex flex-col h-full">
       {/* IMAGE */}
 
-      <Link href={productUrl}>
-        <div className="relative aspect-square overflow-hidden bg-gray-100">
+      <Link href={productUrl} className="block">
+        <div className="relative aspect-square overflow-hidden bg-stone-100">
           <Image
             src={mainImage}
             alt={
@@ -150,18 +150,18 @@ export default function ProductCard({
             }
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
           />
 
           {discount > 0 && (
-            <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-              -{discount}%
+            <span className="absolute top-3 left-0 bg-[#E1553F] text-white text-xs font-bold pl-3 pr-2.5 py-1 rounded-r-full shadow-md">
+              -{discount}% OFF
             </span>
           )}
 
           {product.stock <= 0 && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <span className="text-white font-semibold">
+            <div className="absolute inset-0 bg-black/55 backdrop-blur-[1px] flex items-center justify-center">
+              <span className="text-white font-semibold tracking-wide text-sm border border-white/40 px-3 py-1 rounded-full">
                 Out of Stock
               </span>
             </div>
@@ -169,7 +169,7 @@ export default function ProductCard({
 
           {hasColors &&
             selectedColor && (
-              <span className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-medium px-2 py-1 rounded-md shadow">
+              <span className="absolute bottom-2 left-2 bg-white/95 backdrop-blur-sm text-[#201C1B] text-xs font-semibold px-2.5 py-1 rounded-md shadow">
                 {selectedColor}
               </span>
             )}
@@ -178,13 +178,13 @@ export default function ProductCard({
 
       {/* DETAILS */}
 
-      <div className="p-4">
-        <p className="text-xs text-blue-600 font-medium uppercase tracking-wide">
+      <div className="p-4 flex flex-col flex-1">
+        <p className="text-[11px] text-[#0D5C63] font-bold uppercase tracking-wider">
           {product.category}
         </p>
 
         <Link href={productUrl}>
-          <h3 className="mt-1 font-semibold text-gray-900 line-clamp-2 hover:text-blue-600 transition">
+          <h3 className="mt-1 font-semibold text-[#201C1B] line-clamp-2 leading-snug hover:text-[#0D5C63] transition-colors">
             {product.name}
           </h3>
         </Link>
@@ -192,7 +192,7 @@ export default function ProductCard({
         {/* PRICE */}
 
         <div className="mt-2 flex items-baseline space-x-2">
-          <span className="text-lg font-bold text-gray-900">
+          <span className="text-lg font-black text-[#0A4A50] tabular-nums">
             LKR{" "}
             {product.price.toLocaleString()}
           </span>
@@ -200,7 +200,7 @@ export default function ProductCard({
           {product.comparePrice &&
             product.comparePrice >
               product.price && (
-              <span className="text-sm text-gray-500 line-through">
+              <span className="text-sm text-stone-400 line-through tabular-nums">
                 LKR{" "}
                 {product.comparePrice.toLocaleString()}
               </span>
@@ -212,14 +212,14 @@ export default function ProductCard({
         {hasColors && (
           <div className="mt-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-700">
+              <span className="text-xs font-medium text-stone-600">
                 Colour:
-                <span className="ml-1 font-semibold text-gray-900">
+                <span className="ml-1 font-semibold text-[#201C1B]">
                   {selectedColor}
                 </span>
               </span>
 
-              <span className="text-[10px] text-gray-500">
+              <span className="text-[10px] text-stone-400">
                 {colorVariants.length}{" "}
                 {colorVariants.length === 1
                   ? "colour"
@@ -257,8 +257,8 @@ export default function ProductCard({
                         border-2 transition-all duration-200
                         ${
                           isSelected
-                            ? "border-blue-600 ring-2 ring-blue-200 scale-105"
-                            : "border-gray-200 hover:border-gray-400"
+                            ? "border-[#0D5C63] ring-2 ring-[#0D5C63]/20 scale-105"
+                            : "border-stone-200 hover:border-stone-400"
                         }
                       `}
                     >
@@ -289,9 +289,9 @@ export default function ProductCard({
 
         {/* ACTION */}
 
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
           {product.codAvailable ? (
-            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+            <span className="text-[11px] font-semibold bg-[#E8F3F0] text-[#0A4A50] px-2 py-1 rounded-full">
               COD Available
             </span>
           ) : (
@@ -302,12 +302,12 @@ export default function ProductCard({
             <Link
               href={productUrl}
               className="
-                ml-auto flex items-center space-x-1
-                px-3 py-2 rounded-lg
-                text-sm font-medium
+                ml-auto flex items-center space-x-1.5
+                px-3.5 py-2 rounded-lg
+                text-sm font-semibold
                 transition
-                bg-gray-900 text-white
-                hover:bg-gray-800
+                bg-[#201C1B] text-white
+                hover:bg-[#0D5C63]
               "
             >
               <Palette className="w-4 h-4" />
@@ -327,15 +327,15 @@ export default function ProductCard({
                 added
               }
               className={`
-                ml-auto flex items-center space-x-1
-                px-3 py-2 rounded-lg
-                text-sm font-medium transition
+                ml-auto flex items-center space-x-1.5
+                px-3.5 py-2 rounded-lg
+                text-sm font-semibold transition
                 ${
                   added
-                    ? "bg-green-500 text-white"
+                    ? "bg-emerald-600 text-white"
                     : product.stock <= 0
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
+                    ? "bg-stone-200 text-stone-400 cursor-not-allowed"
+                    : "bg-[#0D5C63] text-white hover:bg-[#0A4A50]"
                 }
               `}
             >

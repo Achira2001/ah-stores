@@ -48,54 +48,54 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-[#FAF7F1] py-12 px-4">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 sm:p-10 rounded-2xl shadow-xl border border-stone-100">
         <div className="text-center">
-          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto">
-            <span className="text-white font-bold text-xl">A</span>
+          <div className="w-14 h-14 bg-[#0D5C63] rounded-2xl flex items-center justify-center mx-auto shadow-md">
+            <span className="text-white font-bold text-2xl">A</span>
           </div>
-          <h2 className="mt-4 text-2xl font-bold text-gray-900">Welcome Back</h2>
-          <p className="mt-1 text-gray-500">Sign in to your AH Store account</p>
+          <h2 className="mt-5 text-2xl font-black text-[#201C1B]">Welcome Back</h2>
+          <p className="mt-1 text-stone-500">Sign in to your AH Store account</p>
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+          <div className="bg-red-50 text-[#E1553F] p-3 rounded-lg text-sm border border-red-100">
             {error === "CredentialsSignin" ? "Invalid email or password" : error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Email</label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
               <input
                 type="email"
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                className="w-full pl-10 pr-4 py-3 border border-stone-200 rounded-xl focus:ring-2 focus:ring-[#0D5C63]/30 focus:border-[#0D5C63] outline-none transition"
                 placeholder="you@example.com"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Password</label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
               <input
                 type={showPassword ? "text" : "password"}
                 required
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                className="w-full pl-10 pr-12 py-3 border border-stone-200 rounded-xl focus:ring-2 focus:ring-[#0D5C63]/30 focus:border-[#0D5C63] outline-none transition"
                 placeholder="Enter your password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -104,10 +104,10 @@ export default function LoginPage() {
 
           <div className="flex items-center justify-between">
             <label className="flex items-center">
-              <input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-              <span className="ml-2 text-sm text-gray-600">Remember me</span>
+              <input type="checkbox" className="rounded border-stone-300 text-[#0D5C63] focus:ring-[#0D5C63]" />
+              <span className="ml-2 text-sm text-stone-600">Remember me</span>
             </label>
-            <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+            <Link href="/forgot-password" className="text-sm text-[#0D5C63] font-medium hover:underline">
               Forgot password?
             </Link>
           </div>
@@ -115,7 +115,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:bg-blue-400"
+            className="w-full flex items-center justify-center bg-[#0D5C63] text-white py-3 rounded-xl font-semibold hover:bg-[#0A4A50] transition disabled:bg-stone-300 shadow-sm hover:shadow-md"
           >
             {loading ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -129,16 +129,16 @@ export default function LoginPage() {
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200" />
+            <div className="w-full border-t border-stone-200" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or continue with</span>
+            <span className="px-3 bg-white text-stone-500">Or continue with</span>
           </div>
         </div>
 
         <button
           onClick={handleGoogleSignIn}
-          className="w-full flex items-center justify-center space-x-2 border border-gray-300 py-3 rounded-lg font-medium hover:bg-gray-50 transition"
+          className="w-full flex items-center justify-center space-x-2 border border-stone-200 py-3 rounded-xl font-medium hover:bg-stone-50 transition"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
@@ -149,9 +149,9 @@ export default function LoginPage() {
           <span>Sign in with Google</span>
         </button>
 
-        <p className="text-center text-sm text-gray-600">
+        <p className="text-center text-sm text-stone-600">
           Don't have an account?{" "}
-          <Link href="/signup" className="text-blue-600 font-medium hover:underline">
+          <Link href="/signup" className="text-[#0D5C63] font-semibold hover:underline">
             Sign up
           </Link>
         </p>

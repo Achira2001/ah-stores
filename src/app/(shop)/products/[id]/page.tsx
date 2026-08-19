@@ -141,10 +141,10 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <div className="animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full mx-auto" />
+      <div className="max-w-7xl mx-auto px-4 py-24 text-center min-h-[60vh] flex flex-col items-center justify-center">
+        <div className="animate-spin w-10 h-10 border-4 border-[#0D5C63] border-t-transparent rounded-full mx-auto" />
 
-        <p className="mt-4 text-gray-500">
+        <p className="mt-4 text-stone-500">
           Loading product...
         </p>
       </div>
@@ -153,16 +153,16 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <div className="bg-white border rounded-2xl p-10">
+      <div className="max-w-7xl mx-auto px-4 py-24 text-center min-h-[60vh] flex items-center justify-center">
+        <div className="bg-white border border-stone-200 rounded-2xl p-10 shadow-sm">
 
-          <p className="text-gray-500 text-lg">
+          <p className="text-stone-500 text-lg">
             Product not found.
           </p>
 
           <Link
             href="/products"
-            className="inline-flex items-center mt-6 bg-blue-600 text-white px-5 py-3 rounded-xl font-semibold"
+            className="inline-flex items-center mt-6 bg-[#0D5C63] text-white px-5 py-3 rounded-xl font-semibold hover:bg-[#0A4A50] transition"
           >
             <ChevronLeft className="w-4 h-4 mr-2" />
             Back to Products
@@ -426,19 +426,19 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-[#FAF7F1] min-h-screen">
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         <Link
   href="/"
-  className="inline-flex items-center text-gray-600 hover:text-blue-600 mb-8 font-medium"
+  className="inline-flex items-center text-stone-600 hover:text-[#0D5C63] mb-8 font-medium transition-colors"
 >
   <ChevronLeft className="w-5 h-5 mr-1" />
   Back to Home
 </Link>
 
-        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 p-6 lg:p-10">
 
@@ -446,7 +446,7 @@ export default function ProductDetailPage() {
 
             <div>
 
-              <div className="relative aspect-square bg-gray-100 rounded-2xl overflow-hidden">
+              <div className="relative aspect-square bg-stone-100 rounded-2xl overflow-hidden">
 
                 {galleryImages.length >
                 0 ? (
@@ -466,15 +466,15 @@ export default function ProductDetailPage() {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <span className="text-gray-400">
+                    <span className="text-stone-400">
                       No image available
                     </span>
                   </div>
                 )}
 
                 {discount > 0 && (
-                  <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-2 rounded-lg text-sm font-bold">
-                    -{discount}%
+                  <div className="absolute top-4 left-0 bg-[#E1553F] text-white pl-4 pr-3 py-2 rounded-r-full text-sm font-bold shadow-md">
+                    -{discount}% OFF
                   </div>
                 )}
 
@@ -497,11 +497,11 @@ export default function ProductDetailPage() {
                             index
                           )
                         }
-                        className={`relative w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden border-2 ${
+                        className={`relative w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden border-2 transition ${
                           selectedImage ===
                           index
-                            ? "border-blue-600"
-                            : "border-gray-200"
+                            ? "border-[#0D5C63]"
+                            : "border-stone-200 hover:border-stone-300"
                         }`}
                       >
                         <Image
@@ -527,17 +527,17 @@ export default function ProductDetailPage() {
 
             <div className="flex flex-col">
 
-              <span className="text-sm font-bold text-blue-600 uppercase tracking-wide">
+              <span className="text-sm font-bold text-[#0D5C63] uppercase tracking-wider">
                 {product.category}
               </span>
 
-              <h1 className="text-3xl lg:text-4xl font-black text-gray-900 mt-2">
+              <h1 className="text-3xl lg:text-4xl font-black text-[#201C1B] mt-2 leading-tight">
                 {product.name}
               </h1>
 
               <div className="flex items-center gap-3 mt-6">
 
-                <span className="text-3xl font-black text-blue-600">
+                <span className="text-3xl font-black text-[#0A4A50] tabular-nums">
                   LKR{" "}
                   {product.price.toLocaleString()}
                 </span>
@@ -545,7 +545,7 @@ export default function ProductDetailPage() {
                 {product.comparePrice &&
                   product.comparePrice >
                     product.price && (
-                    <span className="text-lg text-gray-400 line-through">
+                    <span className="text-lg text-stone-400 line-through tabular-nums">
                       LKR{" "}
                       {product.comparePrice.toLocaleString()}
                     </span>
@@ -554,18 +554,18 @@ export default function ProductDetailPage() {
               </div>
 
               {discount > 0 && (
-                <p className="text-sm text-red-600 font-semibold mt-2">
+                <p className="text-sm text-[#E1553F] font-semibold mt-2">
                   You save {discount}%
                 </p>
               )}
 
-              <div className="border-t border-b py-6 my-6">
+              <div className="border-t border-b border-stone-200 py-6 my-6">
 
-                <h2 className="font-bold text-gray-900 mb-2">
+                <h2 className="font-bold text-[#201C1B] mb-2">
                   Description
                 </h2>
 
-                <p className="text-gray-600 leading-relaxed whitespace-pre-line">
+                <p className="text-stone-600 leading-relaxed whitespace-pre-line">
                   {product.description}
                 </p>
 
@@ -579,9 +579,9 @@ export default function ProductDetailPage() {
 
                   <div className="flex items-center gap-2 mb-4">
 
-                    <Palette className="w-5 h-5 text-gray-700" />
+                    <Palette className="w-5 h-5 text-[#0D5C63]" />
 
-                    <span className="font-bold">
+                    <span className="font-bold text-[#201C1B]">
                       Select Colours & Quantity
                     </span>
 
@@ -609,8 +609,8 @@ export default function ProductDetailPage() {
                             }
                             className={`flex items-center gap-4 p-3 rounded-xl border-2 transition ${
                               isSelected
-                                ? "border-blue-500 bg-blue-50"
-                                : "border-gray-200"
+                                ? "border-[#0D5C63] bg-[#E8F3F0]"
+                                : "border-stone-200"
                             }`}
                           >
 
@@ -626,7 +626,7 @@ export default function ProductDetailPage() {
                                   0
                                 )
                               }}
-                              className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border"
+                              className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border border-stone-200"
                             >
                               {variant.images[0] ? (
                                 <Image
@@ -641,7 +641,7 @@ export default function ProductDetailPage() {
                                   className="object-cover"
                                 />
                               ) : (
-                                <div className="w-full h-full bg-gray-100" />
+                                <div className="w-full h-full bg-stone-100" />
                               )}
                             </button>
 
@@ -649,7 +649,7 @@ export default function ProductDetailPage() {
 
                             <div className="flex-1">
 
-                              <p className="font-bold text-gray-900">
+                              <p className="font-bold text-[#201C1B]">
                                 {variant.color}
                               </p>
 
@@ -657,8 +657,8 @@ export default function ProductDetailPage() {
                                 className={`text-xs ${
                                   variant.stock >
                                   0
-                                    ? "text-green-600"
-                                    : "text-red-600"
+                                    ? "text-emerald-600"
+                                    : "text-[#E1553F]"
                                 }`}
                               >
                                 {variant.stock >
@@ -673,7 +673,7 @@ export default function ProductDetailPage() {
 
                             {variant.stock >
                               0 ? (
-                              <div className="flex items-center border rounded-xl overflow-hidden bg-white">
+                              <div className="flex items-center border border-stone-200 rounded-xl overflow-hidden bg-white">
 
                                 <button
                                   type="button"
@@ -682,12 +682,12 @@ export default function ProductDetailPage() {
                                       variant.color
                                     )
                                   }
-                                  className="p-2 hover:bg-gray-100"
+                                  className="p-2 hover:bg-stone-100 transition"
                                 >
                                   <Minus className="w-4 h-4" />
                                 </button>
 
-                                <span className="w-10 text-center font-bold">
+                                <span className="w-10 text-center font-bold tabular-nums">
                                   {quantity}
                                 </span>
 
@@ -702,14 +702,14 @@ export default function ProductDetailPage() {
                                     quantity >=
                                     variant.stock
                                   }
-                                  className="p-2 hover:bg-gray-100 disabled:text-gray-300"
+                                  className="p-2 hover:bg-stone-100 disabled:text-stone-300 transition"
                                 >
                                   <Plus className="w-4 h-4" />
                                 </button>
 
                               </div>
                             ) : (
-                              <span className="text-xs text-red-500 font-semibold">
+                              <span className="text-xs text-[#E1553F] font-semibold">
                                 Sold Out
                               </span>
                             )}
@@ -728,15 +728,15 @@ export default function ProductDetailPage() {
 
               {totalSelectedQuantity >
                 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+                <div className="bg-[#E8F3F0] border border-[#0D5C63]/20 rounded-xl p-4 mb-4">
 
                   <div className="flex justify-between">
 
-                    <span className="text-gray-700">
+                    <span className="text-stone-700">
                       Selected quantity
                     </span>
 
-                    <span className="font-bold">
+                    <span className="font-bold text-[#201C1B]">
                       {totalSelectedQuantity}
                     </span>
 
@@ -744,11 +744,11 @@ export default function ProductDetailPage() {
 
                   <div className="flex justify-between mt-1">
 
-                    <span className="text-gray-700">
+                    <span className="text-stone-700">
                       Total
                     </span>
 
-                    <span className="font-bold text-blue-600">
+                    <span className="font-bold text-[#0A4A50] tabular-nums">
                       LKR{" "}
                       {totalSelectedPrice.toLocaleString()}
                     </span>
@@ -766,7 +766,7 @@ export default function ProductDetailPage() {
                   className={`px-3 py-2 rounded-full text-sm font-semibold w-fit ${
                     product.stock >
                     0
-                      ? "bg-green-100 text-green-700"
+                      ? "bg-emerald-100 text-emerald-700"
                       : "bg-red-100 text-red-700"
                   }`}
                 >
@@ -778,7 +778,7 @@ export default function ProductDetailPage() {
               )}
 
               {product.codAvailable && (
-                <span className="px-3 py-2 rounded-full text-sm font-semibold bg-blue-100 text-blue-700 w-fit mt-3">
+                <span className="px-3 py-2 rounded-full text-sm font-semibold bg-[#E8F3F0] text-[#0A4A50] w-fit mt-3">
                   COD Available
                 </span>
               )}
@@ -798,7 +798,7 @@ export default function ProductDetailPage() {
                     totalSelectedQuantity ===
                       0)
                 }
-                className="mt-6 w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="mt-6 w-full flex items-center justify-center gap-2 bg-[#0D5C63] text-white py-4 rounded-xl font-bold hover:bg-[#0A4A50] transition disabled:bg-stone-300 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
               >
 
                 {status !==
@@ -822,28 +822,28 @@ export default function ProductDetailPage() {
 
               {/* TRUST */}
 
-              <div className="grid grid-cols-3 gap-3 mt-8 pt-8 border-t">
+              <div className="grid grid-cols-3 gap-3 mt-8 pt-8 border-t border-stone-200">
 
                 <div className="text-center">
-                  <Truck className="w-6 h-6 mx-auto text-blue-600" />
+                  <Truck className="w-6 h-6 mx-auto text-[#0D5C63]" />
 
-                  <p className="text-xs text-gray-600 mt-2">
+                  <p className="text-xs text-stone-600 mt-2">
                     Fast Delivery
                   </p>
                 </div>
 
                 <div className="text-center">
-                  <Shield className="w-6 h-6 mx-auto text-blue-600" />
+                  <Shield className="w-6 h-6 mx-auto text-[#0D5C63]" />
 
-                  <p className="text-xs text-gray-600 mt-2">
+                  <p className="text-xs text-stone-600 mt-2">
                     Secure Payment
                   </p>
                 </div>
 
                 <div className="text-center">
-                  <RotateCcw className="w-6 h-6 mx-auto text-blue-600" />
+                  <RotateCcw className="w-6 h-6 mx-auto text-[#0D5C63]" />
 
-                  <p className="text-xs text-gray-600 mt-2">
+                  <p className="text-xs text-stone-600 mt-2">
                     Easy Returns
                   </p>
                 </div>
