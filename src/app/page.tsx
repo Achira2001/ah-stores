@@ -61,7 +61,11 @@ export default function HomePage() {
     try {
       setLoadingProducts(true)
 
-      const res = await fetch("/api/products?limit=100", {
+      /*
+       * Fetch all products.
+       * API limit is configured to allow up to 1000 products.
+       */
+      const res = await fetch("/api/products?limit=1000", {
         cache: "no-store",
       })
 
@@ -121,10 +125,19 @@ export default function HomePage() {
     (product) => product.featured
   )
 
-  const newArrivals = filteredProducts.slice(0, 8)
+  /*
+   * IMPORTANT:
+   * Previously this was:
+   *
+   * filteredProducts.slice(0, 8)
+   *
+   * That limited the home page to 8 products.
+   *
+   * Now all matching products are displayed.
+   */
+  const newArrivals = filteredProducts
 
   const handleAddToCart = (product: Product) => {
-    // Customer is NOT logged in
     if (status !== "authenticated") {
       toast("Please sign in to add products to your cart.", {
         icon: "🔐",
@@ -132,7 +145,7 @@ export default function HomePage() {
 
       router.push(
         `/login?callbackUrl=${encodeURIComponent(
-          `/product/${product._id}`
+          `/products/${product._id}`
         )}`
       )
 
@@ -187,8 +200,6 @@ export default function HomePage() {
                 shopping and reliable delivery across Sri Lanka.
               </p>
 
-              {/* Search */}
-
               <div className="mt-8 relative max-w-xl">
 
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -225,8 +236,6 @@ export default function HomePage() {
               </div>
 
             </div>
-
-            {/* Hero visual */}
 
             <div className="hidden lg:block">
 
@@ -332,7 +341,7 @@ export default function HomePage() {
       </section>
 
       {/* =========================================================
-          DYNAMIC CATEGORIES
+          CATEGORIES
       ========================================================= */}
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
@@ -418,8 +427,6 @@ export default function HomePage() {
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"
       >
 
-        {/* Selected category */}
-
         {selectedCategory && (
           <div className="mb-6">
 
@@ -434,7 +441,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Featured */}
+        {/* Featured Products */}
 
         {!search && !selectedCategory && featuredProducts.length > 0 && (
 
@@ -479,7 +486,7 @@ export default function HomePage() {
                   ? "Search Results"
                   : selectedCategory
                   ? selectedCategory
-                  : "New Arrivals"}
+                  : "All Products"}
               </h2>
             </div>
 
@@ -682,24 +689,16 @@ function ProductGrid({
 
               </div>
 
-              <div className="grid grid-cols-2 gap-2 mt-4">
+              {/* ONLY DETAILS BUTTON */}
+
+              <div className="mt-4">
 
                 <Link
                   href={`/products/${product._id}`}
-                  className="py-2.5 rounded-xl border text-center text-xs font-bold text-gray-700 hover:bg-gray-50"
+                  className="w-full py-2.5 rounded-xl border text-center text-xs font-bold text-gray-700 hover:bg-gray-50 block"
                 >
                   Details
                 </Link>
-
-                <button
-                  onClick={() => onAddToCart(product)}
-                  disabled={product.stock <= 0}
-                  className="py-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                >
-                  <ShoppingCart className="w-3.5 h-3.5" />
-
-                  {session ? "Add" : "Login to Add"}
-                </button>
 
               </div>
 

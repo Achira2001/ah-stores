@@ -23,8 +23,11 @@ export async function GET(req: NextRequest) {
       parseInt(searchParams.get("page") || "1")
     )
 
+    /*
+     * Allow the home page to request all products.
+     */
     const limit = Math.min(
-      100,
+      1000,
       Math.max(
         1,
         parseInt(searchParams.get("limit") || "12")
@@ -185,71 +188,71 @@ export async function POST(req: NextRequest) {
 
     // Validate every colour variant
     for (const variant of body.colorVariants) {
-  if (!variant || typeof variant !== "object") {
-    return NextResponse.json(
-      {
-        error: "Invalid colour variant",
-      },
-      {
-        status: 400,
+      if (!variant || typeof variant !== "object") {
+        return NextResponse.json(
+          {
+            error: "Invalid colour variant",
+          },
+          {
+            status: 400,
+          }
+        )
       }
-    )
-  }
 
-  if (!variant.color?.trim()) {
-    return NextResponse.json(
-      {
-        error: "Every colour must have a name",
-      },
-      {
-        status: 400,
+      if (!variant.color?.trim()) {
+        return NextResponse.json(
+          {
+            error: "Every colour must have a name",
+          },
+          {
+            status: 400,
+          }
+        )
       }
-    )
-  }
 
-  if (
-    !Array.isArray(variant.images) ||
-    variant.images.length === 0
-  ) {
-    return NextResponse.json(
-      {
-        error: `Colour "${variant.color}" must have at least one image`,
-      },
-      {
-        status: 400,
+      if (
+        !Array.isArray(variant.images) ||
+        variant.images.length === 0
+      ) {
+        return NextResponse.json(
+          {
+            error: `Colour "${variant.color}" must have at least one image`,
+          },
+          {
+            status: 400,
+          }
+        )
       }
-    )
-  }
 
-  if (
-    variant.stock === undefined ||
-    !Number.isInteger(Number(variant.stock)) ||
-    Number(variant.stock) < 0
-  ) {
-    return NextResponse.json(
-      {
-        error: `Invalid stock for colour "${variant.color}"`,
-      },
-      {
-        status: 400,
+      if (
+        variant.stock === undefined ||
+        !Number.isInteger(Number(variant.stock)) ||
+        Number(variant.stock) < 0
+      ) {
+        return NextResponse.json(
+          {
+            error: `Invalid stock for colour "${variant.color}"`,
+          },
+          {
+            status: 400,
+          }
+        )
       }
-    )
-  }
-}
+    }
 
     await connectDB()
 
     const colorVariants = body.colorVariants.map(
-  (variant: {
-    color: string
-    images: string[]
-    stock: number
-  }) => ({
-    color: variant.color.trim(),
-    images: variant.images,
-    stock: Number(variant.stock),
-  })
-)
+      (variant: {
+        color: string
+        images: string[]
+        stock: number
+      }) => ({
+        color: variant.color.trim(),
+        images: variant.images,
+        stock: Number(variant.stock),
+      })
+    )
 
     const product = await Product.create({
       name: body.name.trim(),
