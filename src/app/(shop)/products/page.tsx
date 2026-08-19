@@ -4,13 +4,15 @@ import SortDropdown from "@/components/SortDropdown"
 import connectDB from "@/lib/mongodb"
 import Product from "@/models/Product"
 
-async function getProducts(searchParams: { [key: string]: string | string[] | undefined }) {
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
+
+async function getProducts(resolvedParams: { [key: string]: string | string[] | undefined }) {
   await connectDB()
-  
-  const category = searchParams.category as string
-  const sort = searchParams.sort as string
-  const search = searchParams.search as string
-  const page = parseInt((searchParams.page as string) || "1")
+
+  const category = resolvedParams.category as string
+  const sort = resolvedParams.sort as string
+  const search = resolvedParams.search as string
+  const page = parseInt((resolvedParams.page as string) || "1", 10)
   const limit = 12
 
   const query: any = {}
@@ -38,11 +40,8 @@ async function getProducts(searchParams: { [key: string]: string | string[] | un
   }
 }
 
-export default async function ProductsPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined }
-}) {
+export default async function ProductsPage(props: { searchParams: SearchParams }) {
+  const searchParams = await props.searchParams
   const { products, total, pages, currentPage } = await getProducts(searchParams)
 
   return (

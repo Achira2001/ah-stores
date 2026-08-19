@@ -1,7 +1,4 @@
-import mongoose, {
-  Schema,
-  Document,
-} from "mongoose"
+import mongoose, { Schema, Document } from "mongoose"
 
 export interface IOrderItem {
   product: mongoose.Types.ObjectId
@@ -12,26 +9,13 @@ export interface IOrderItem {
   color?: string
 }
 
-export type OrderStatus =
-  | "pending"
-  | "processing"
-  | "delivered"
-  | "cancelled"
-
-export type PaymentMethod =
-  | "cod"
-  | "card"
-
-export type PaymentStatus =
-  | "pending"
-  | "paid"
-  | "failed"
+export type OrderStatus = "pending" | "processing" | "delivered" | "cancelled"
+export type PaymentMethod = "cod" | "card"
+export type PaymentStatus = "pending" | "paid" | "failed"
 
 export interface IOrder extends Document {
   user: mongoose.Types.ObjectId
-
   items: IOrderItem[]
-
   shippingAddress: {
     fullName: string
     phone: string
@@ -39,64 +23,51 @@ export interface IOrder extends Document {
     city: string
     postalCode?: string
   }
-
   totalAmount: number
-
   status: OrderStatus
-
   paymentMethod: PaymentMethod
-
   paymentStatus: PaymentStatus
-
   stripePaymentIntentId?: string
-
   stripeCheckoutSessionId?: string
-
   createdAt: Date
   updatedAt: Date
 }
 
-const OrderItemSchema =
-  new Schema<IOrderItem>(
-    {
-      product: {
-        type: Schema.Types.ObjectId,
-        ref: "Product",
-        required: true,
-      },
-
-      name: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-
-      image: {
-        type: String,
-        required: true,
-      },
-
-      price: {
-        type: Number,
-        required: true,
-        min: 0,
-      },
-
-      quantity: {
-        type: Number,
-        required: true,
-        min: 1,
-      },
-
-      color: {
-        type: String,
-        trim: true,
-      },
+const OrderItemSchema = new Schema<IOrderItem>(
+  {
+    product: {
+      type: Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
     },
-    {
-      _id: false,
-    }
-  )
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    image: {
+      type: String,
+      required: true,
+    },
+    price: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    color: {
+      type: String,
+      trim: true,
+    },
+  },
+  {
+    _id: false,
+  }
+)
 
 const OrderSchema = new Schema<IOrder>(
   {
@@ -104,138 +75,64 @@ const OrderSchema = new Schema<IOrder>(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
     },
-
     items: {
       type: [OrderItemSchema],
       required: true,
-
       validate: {
-        validator: function (
-          items: IOrderItem[]
-        ) {
-          return (
-            Array.isArray(items) &&
-            items.length > 0
-          )
+        validator: function (items: IOrderItem[]) {
+          return Array.isArray(items) && items.length > 0
         },
-
-        message:
-          "Order must contain at least one item",
+        message: "Order must contain at least one item",
       },
     },
-
     shippingAddress: {
-      fullName: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-
-      phone: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-
-      address: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-
-      city: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-
-      postalCode: {
-        type: String,
-        trim: true,
-      },
+      fullName: { type: String, required: true, trim: true },
+      phone: { type: String, required: true, trim: true },
+      address: { type: String, required: true, trim: true },
+      city: { type: String, required: true, trim: true },
+      postalCode: { type: String, trim: true },
     },
-
     totalAmount: {
       type: Number,
       required: true,
       min: 0,
     },
-
     status: {
       type: String,
-
-      enum: [
-        "pending",
-        "processing",
-        "delivered",
-        "cancelled",
-      ],
-
+      enum: ["pending", "processing", "delivered", "cancelled"],
       default: "pending",
-      index: true,
     },
-
     paymentMethod: {
       type: String,
-
-      enum: [
-        "cod",
-        "card",
-      ],
-
+      enum: ["cod", "card"],
       required: true,
     },
-
     paymentStatus: {
       type: String,
-
-      enum: [
-        "pending",
-        "paid",
-        "failed",
-      ],
-
+      enum: ["pending", "paid", "failed"],
       default: "pending",
-      index: true,
     },
-
     stripePaymentIntentId: {
       type: String,
       default: undefined,
-      index: true,
     },
-
     stripeCheckoutSessionId: {
       type: String,
       default: undefined,
       unique: true,
       sparse: true,
-      index: true,
     },
   },
-
   {
     timestamps: true,
   }
 )
 
-OrderSchema.index({
-  user: 1,
-  createdAt: -1,
-})
-
-OrderSchema.index({
-  status: 1,
-})
-
-OrderSchema.index({
-  paymentStatus: 1,
-})
+OrderSchema.index({ user: 1, createdAt: -1 })
+OrderSchema.index({ status: 1 })
+OrderSchema.index({ paymentStatus: 1 })
+OrderSchema.index({ stripePaymentIntentId: 1 })
 
 export default mongoose.models.Order ||
-  mongoose.model<IOrder>(
-    "Order",
-    OrderSchema
-  )
+  mongoose.model<IOrder>("Order", OrderSchema)
