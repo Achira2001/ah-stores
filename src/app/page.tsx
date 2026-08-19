@@ -164,6 +164,7 @@ export default function HomePage() {
       image: product.images?.[0] || "",
       stock: product.stock,
       codAvailable: product.codAvailable,
+      quantity: 1,
     })
 
     toast.success(`${product.name} added to cart`)

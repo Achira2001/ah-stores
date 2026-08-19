@@ -415,7 +415,7 @@ export async function POST(
 
         const variant =
           product.colorVariants.find(
-            (v) =>
+            (v: any) =>
               v.color === color
           )
 
